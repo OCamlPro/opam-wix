@@ -1,0 +1,32 @@
+opam-version: "2.0"
+name: "owix"
+version: "0.1"
+maintainer: "Mohamed Hernouf <mohamed.hernouf@ocamlpro.com>"
+authors: [
+    "Raja Boujbel"
+    "Mohamed Hernouf"
+]
+tags: ["wix" "msi" "windows" "cygwin"]
+license: "LGPL-2.1-only with OCaml-LGPL-linking-exception"
+homepage: "https://github.com/hernoufM/owix"
+bug-reports: "https://github.com/hernoufM/owix/issues"
+available: (os = "cygwin")
+depends: [
+  "ocaml" {build}
+  "ocamlfind" {build}
+  "dune" {build & >= "2.8.5"}
+  "cmdliner" {>= "1.0.0"}
+  "lwt" {>= "4.0.0"}
+]
+build: [
+    "dune"
+    "build"
+    "-j" jobs
+    "-p" name
+    "@runtest" {with-test}
+]
+dev-repo: "git+https://github.com/hernoufM/owix"
+synopsis: ""
+description: """
+
+"""
