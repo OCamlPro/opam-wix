@@ -2,5 +2,5 @@
  (name owix)
  (public_name owix)
  (modes (native exe))
- (flags -w A-33)
+ (flags -w A-4-33-44)
  (libraries lwt lwt.unix cmdliner))
