@@ -40,10 +40,11 @@ let create_bundle conf =
       System.call System.Remove (true, bundle_dir) |>
         handle_result ignore;
     end;
-    System.call System.Mkdir bundle_dir |>
+    let bundle_bin = Filename.concat bundle_dir "bin" in
+    System.call System.Mkdir (true, bundle_bin) |>
     handle_result @@ fun _ ->
       List.iter (fun dll ->
-        let dst = Filename.(concat bundle_dir (basename dll)) in
+        let dst = Filename.(concat bundle_bin (basename dll)) in
         System.call System.Copy (dll, dst) |>
           handle_result ignore
       ) dlls |> fun () ->
@@ -52,7 +53,7 @@ let create_bundle conf =
           then conf.path ^ ".exe"
           else conf.path
         in
-        let dst = Filename.(concat bundle_dir (basename exe_path)) in
+        let dst = Filename.(concat bundle_bin (basename exe_path)) in
         System.call System.Copy (conf.path, dst) |>
           handle_result @@ fun _ -> ()
 

@@ -1,16 +1,21 @@
 type _ command =
   | Cygcheck: string command
   | Copy : (string * string) command
-  | Mkdir : string command
+  | Mkdir : (bool *string) command
   | Remove : (bool * string) command
 
-let command_to_string : type a. a command -> a -> string = function
+let command_to_string : type a. a command -> a -> string =
+  let print_flag_short name flag =
+    if flag then "-" ^ name ^ " " else ""
+  in
+  function
   | Cygcheck -> Format.sprintf "cygcheck %s"
   | Copy -> Format.sprintf "cp %a"
     (fun _ (a,b) -> Format.asprintf "%s %s" a b)
-  | Mkdir -> Format.sprintf "mkdir %s"
+  | Mkdir -> fun (p,dir) -> Format.sprintf "mkdir %s%s"
+    (print_flag_short "p" p) dir
   | Remove -> fun (is_dir,path) -> Format.sprintf "rm %s%s"
-    (if is_dir then "-r " else "") path
+    (print_flag_short "r" is_dir) path
 
 let read_lines inc =
   let rec aux acc =
@@ -27,8 +32,12 @@ let call : type a. a command -> a -> (string list, string) result =
       "cygcheck", [| "cygcheck"; path |]
     | Copy, (src,dst) ->
       "cp", [|"cp"; src; dst|]
-    | Mkdir, dir ->
-      "mkdir", [|"mkdir"; dir|]
+    | Mkdir, (p,dir) ->
+      let args = [ "mkdir" ] @
+        (if p then ["-p"] else []) @
+        [ dir ]
+      in
+      "mkdir", Array.of_list args
     | Remove, (is_dir,path) ->
       let args = [ "rm" ] @
         (if is_dir then ["-r"] else []) @
