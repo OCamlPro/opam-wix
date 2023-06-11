@@ -1,4 +1,3 @@
-open Lwt.Infix
 open Cmdliner
 
 type config = {
@@ -25,40 +24,41 @@ end
 
 let handle_result f res =
   match res with
-  | Ok x ->
-    Lwt.catch
-      (fun () -> f x)
-      (fun exn ->
-        Lwt.fail @@ Failure (Printexc.to_string exn))
-  | Error err -> Lwt.fail (Failure err)
+  | Ok x -> begin
+    try f x
+    with exn ->
+      raise (Failure (Printexc.to_string exn))
+    end
+  | Error err -> raise (Failure err)
 
 let create_bundle conf =
-  Lwt_main.run (
-    Cygcheck.get_dlls conf.path >>=
-    handle_result @@ fun dlls ->
-      let bundle_dir = Filename.concat conf.output_dir
-        (Filename.basename conf.path ^ "-msi") in
-      System.call System.Mkdir bundle_dir >>=
-      handle_result @@ fun _ ->
-      Lwt_list.iter_p (fun dll ->
+  Cygcheck.get_dlls conf.path |>
+  handle_result @@ fun dlls ->
+    let bundle_dir = Filename.concat conf.output_dir
+      (Filename.basename conf.path ^ "-msi") in
+    if Sys.file_exists bundle_dir then begin
+      System.call System.Remove (true, bundle_dir) |>
+        handle_result ignore;
+    end;
+    System.call System.Mkdir bundle_dir |>
+    handle_result @@ fun _ ->
+      List.iter (fun dll ->
         let dst = Filename.(concat bundle_dir (basename dll)) in
-        System.call System.Copy (dll, dst) >>=
-        handle_result @@ fun _ ->
-          Lwt.return_unit
-      ) dlls >>= fun () ->
-      let exe_path =
-        if not (Filename.extension conf.path = "exe")
-        then conf.path ^ ".exe"
-        else conf.path
-      in
-      let dst = Filename.(concat bundle_dir (basename exe_path)) in
-      System.call System.Copy (exe_path, dst) >>=
-        handle_result @@ fun _ -> Lwt.return_unit
-    )
+        System.call System.Copy (dll, dst) |>
+          handle_result ignore
+      ) dlls |> fun () ->
+        let exe_path =
+          if not (Filename.extension conf.path = "exe")
+          then conf.path ^ ".exe"
+          else conf.path
+        in
+        let dst = Filename.(concat bundle_dir (basename exe_path)) in
+        System.call System.Copy (conf.path, dst) |>
+          handle_result @@ fun _ -> ()
 
 let main_info =
   Cmd.info
-    ~doc:"Windows msi bundeling from cygwin progrma"
+    ~doc:"Windows msi bundeling for cygwin program"
     "owix"
 
 let main_term = Term.(const create_bundle $ Args.term)

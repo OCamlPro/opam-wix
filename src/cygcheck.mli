@@ -1,2 +1,2 @@
 
-val get_dlls : string -> (string list, string) result Lwt.t
+val get_dlls : string -> (string list, string) result
