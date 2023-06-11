@@ -1,6 +1,12 @@
+(rule
+  (target scripts.ml)
+  (deps (source_tree ../scripts))
+  (action
+   (run %{bin:ocaml-crunch} -m plain -o scripts.ml ../scripts)))
+
 (executable
  (name owix)
  (public_name owix)
  (modes (native exe))
  (flags -w A-4-33-44-70)
- (libraries cmdliner unix))
+ (libraries cmdliner str unix))

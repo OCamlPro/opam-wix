@@ -2,7 +2,8 @@ open Cmdliner
 
 type config = {
   path : string;
-  output_dir : string
+  output_dir : string;
+  wix_path : string
 }
 
 module Args = struct
@@ -16,9 +17,13 @@ module Args = struct
     value & opt dir "." & info ["output"] ~docv:"DIR" ~doc:
     "The output directory where bundle will be stored"
 
+  let wix_path =
+    value & opt dir "/cygdrive/c/Program Files (x86)/WiX Toolset v3.10/bin" & info ["wix-path"] ~docv:"DIR" ~doc:
+    "The path where WIX tools are stored. The path should be full."
+
   let term =
-    let apply path output_dir = { path; output_dir } in
-    Term.(const apply $ path $ output_dir)
+    let apply path output_dir wix_path = { path; output_dir; wix_path } in
+    Term.(const apply $ path $ output_dir $ wix_path)
 
 end
 
@@ -30,6 +35,17 @@ let handle_result f res =
       raise (Failure (Printexc.to_string exn))
     end
   | Error err -> raise (Failure err)
+
+let perform_subst str env =
+  List.fold_left (fun res (pattern, replacement) ->
+    let regex = Str.regexp_string pattern in
+    Str.global_replace regex replacement res
+  ) str env
+
+let write_to_file path content =
+  let oc = open_out path in
+  Out_channel.output_string oc content;
+  close_out oc
 
 let create_bundle conf =
   Cygcheck.get_dlls conf.path |>
@@ -55,7 +71,15 @@ let create_bundle conf =
         in
         let dst = Filename.(concat bundle_bin (basename exe_path)) in
         System.call System.Copy (conf.path, dst) |>
-          handle_result @@ fun _ -> ()
+          handle_result @@ fun _ ->
+            let make_msi_script = Option.get @@
+              Scripts.read "make_msi.sh" in
+            let make_msi_script =
+              perform_subst make_msi_script
+                [ "%{wix-path}%", conf.wix_path]
+            in
+            write_to_file (Filename.concat bundle_dir "make_msi.sh") make_msi_script
+
 
 let main_info =
   Cmd.info
