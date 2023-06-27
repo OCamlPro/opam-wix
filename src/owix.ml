@@ -96,7 +96,7 @@ let create_bundle cli =
           "--binary-path and --binary can't be used together"
       | Some path, None ->
         if Sys.file_exists path then
-          if OpamSystem.is_exec path then
+          if not (OpamSystem.is_exec path) then
             OpamConsole.error_and_exit `Bad_arguments
               "File %s is not executable" path
           else path
@@ -124,7 +124,7 @@ let create_bundle cli =
              with option '--binary':%s"
             (OpamStd.Format.itemize (fun x -> x) binaries)
     in
-    let dlls =Cygcheck.get_dlls binary_path in
+    let dlls = Cygcheck.get_dlls binary_path in
     let bundle_dir =
       Filename.concat conf.output_dir
         (OpamPackage.to_string package)
@@ -171,17 +171,16 @@ let create_bundle cli =
       let banner_bmp_file = Filename.basename conf.ban_bmp
     end in
     let wxs = Wix.main_wxs (module Info) in
-    Wix.write_wxs "frama-c.wxs" wxs;
-    System.call_unit System.Candle (conf.wix_path, ["frama-c.wxs"; "data/wix/CustomInstallDir.wxs"; "data/wix/CustomInstallDirDlg.wxs"]);
-    System.call_unit System.Light (conf.wix_path, ["frama-c.wixobj"; "CustomInstallDir.wixobj"; "CustomInstallDirDlg.wixobj"],
-                                   ["WixUIExtension"; "WixUtilExtension"], Filename.concat conf.output_dir "frama-c.msi");
-    (*     System.call_unit System.Remove (false, "frama-c-gui.wxs");
-           System.call_unit System.Remove (false, "frama-c-gui.wixobj");
-           System.call_unit System.Remove (false, "CustomInstallDir.wixobj");
-           System.call_unit System.Remove (false, "CustomInstallDirDlg.wixobj")
-    *)
-    (*     System.call_unit System.Remove (true, bundle_dir);
-    *)
+    let name = Filename.chop_extension exe_file in
+    Wix.write_wxs (name ^ ".wxs") wxs;
+    System.call_unit System.Candle (conf.wix_path, [name ^ ".wxs"; "data/wix/CustomInstallDir.wxs"; "data/wix/CustomInstallDirDlg.wxs"]);
+    System.call_unit System.Light (conf.wix_path, [name ^ ".wixobj"; "CustomInstallDir.wixobj"; "CustomInstallDirDlg.wixobj"],
+                                   ["WixUIExtension"; "WixUtilExtension"], Filename.concat conf.output_dir (name ^ ".msi"));
+    System.call_unit System.Remove (false, name ^ ".wxs");
+    System.call_unit System.Remove (false, name ^ ".wixobj");
+    System.call_unit System.Remove (false, "CustomInstallDir.wixobj");
+    System.call_unit System.Remove (false, "CustomInstallDirDlg.wixobj");
+    System.call_unit System.Remove (true, bundle_dir);
     OpamSwitchState.drop st;
     OpamGlobalState.drop gt
   in
