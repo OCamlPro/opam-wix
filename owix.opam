@@ -10,13 +10,15 @@ tags: ["wix" "msi" "windows" "cygwin"]
 license: "LGPL-2.1-only with OCaml-LGPL-linking-exception"
 homepage: "https://github.com/hernoufM/owix"
 bug-reports: "https://github.com/hernoufM/owix/issues"
-available: (os = "cygwin")
+#available: (os = "cygwin")
 depends: [
-  "ocaml" {build}
+  "ocaml" {build & >= "4.14.0"}
   "ocamlfind" {build}
   "dune" {build & >= "2.8.5"}
-  "cmdliner" {>= "1.1.1"}
+  "cmdliner" {<= "1.1.1"}
   "markup"
+  "opam-client"
+  "opam-format"
 ]
 build: [
     "dune"
@@ -30,3 +32,4 @@ synopsis: ""
 description: """
 
 """
+flags: plugin
