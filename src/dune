@@ -3,4 +3,4 @@
  (public_name owix)
  (modes (native exe))
  (flags -w A-4-5-33-44-70)
- (libraries cmdliner str unix markup))
+ (libraries cmdliner str unix markup opam-format opam-client))
