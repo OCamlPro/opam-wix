@@ -2,5 +2,5 @@
  (name owix)
  (public_name owix)
  (modes (native exe))
- (flags -w A-4-5-33-44-70)
+ (flags -w A-4-5-33-44-45-70)
  (libraries cmdliner str unix markup opam-format opam-client))

@@ -133,19 +133,19 @@ let create_bundle cli =
       System.call_unit System.Remove (true, bundle_dir)
     end;
     System.call_unit System.Mkdir (true, bundle_dir);
-    List.iter (fun dll ->
-        System.call_unit System.Copy (dll, bundle_dir)
-      ) dlls;
+    System.call_list @@ List.map (fun dll -> System.Copy, (dll, bundle_dir)) dlls;
     let exe_file =
       let base = Filename.basename binary_path in
       if not (Filename.extension base = "exe")
       then base ^ ".exe"
       else base
     in
-    System.call_unit System.Copy (binary_path, Filename.concat bundle_dir exe_file);
-    System.call_unit System.Copy (conf.icon_file, bundle_dir);
-    System.call_unit System.Copy (conf.dlg_bmp, bundle_dir);
-    System.call_unit System.Copy (conf.ban_bmp, bundle_dir);
+    System.(call_list [
+      Copy, (binary_path, Filename.concat bundle_dir exe_file);
+      Copy, (conf.icon_file, bundle_dir);
+      Copy, (conf.dlg_bmp, bundle_dir);
+      Copy, (conf.ban_bmp, bundle_dir);
+    ]);
     let module Info = struct
       open OpamStd.Option.Op
       let path = bundle_dir
@@ -173,14 +173,18 @@ let create_bundle cli =
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension exe_file in
     Wix.write_wxs (name ^ ".wxs") wxs;
+
     System.call_unit System.Candle (conf.wix_path, [name ^ ".wxs"; "data/wix/CustomInstallDir.wxs"; "data/wix/CustomInstallDirDlg.wxs"]);
     System.call_unit System.Light (conf.wix_path, [name ^ ".wixobj"; "CustomInstallDir.wixobj"; "CustomInstallDirDlg.wixobj"],
                                    ["WixUIExtension"; "WixUtilExtension"], Filename.concat conf.output_dir (name ^ ".msi"));
-    System.call_unit System.Remove (false, name ^ ".wxs");
-    System.call_unit System.Remove (false, name ^ ".wixobj");
-    System.call_unit System.Remove (false, "CustomInstallDir.wixobj");
-    System.call_unit System.Remove (false, "CustomInstallDirDlg.wixobj");
-    System.call_unit System.Remove (true, bundle_dir);
+    System.(call_list [
+      Remove, (false, name ^ ".wxs");
+      Remove, (false, name ^ ".wixobj");
+      Remove, (false, name ^ ".wixpdb");
+      Remove, (false, "CustomInstallDir.wixobj");
+      Remove, (false, "CustomInstallDirDlg.wixobj");
+      Remove, (true, bundle_dir);
+    ]);
     OpamSwitchState.drop st;
     OpamGlobalState.drop gt
   in

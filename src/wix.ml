@@ -13,10 +13,10 @@ let name s = ("", s)
 let get_uuid mode =
   match System.(call Uuidgen mode) with
   | uuid::_ -> uuid
-  | _ -> raise (Failure "Unexpected output")
+  | _ -> raise (Failure "uuidgen produces unexpected output")
 
-let mode_package_version p v = System.Package (p, (Some v))
-let mode_package p = System.Package (p, None)
+let mode_package_exe_version p e v = System.Exec (p, e, (Some v))
+let mode_package_exe p e = System.Exec (p, e, None)
 let mode_rand = System.Rand
 
 
@@ -45,17 +45,18 @@ let normalize_id =
 
 let main_wxs (module Info : INFO) : wxs =
   let path p = Filename.concat Info.path p in
+  let exec_name = Filename.basename Info.exec_file |> Filename.chop_extension in
   [
   `Xml xml_declaration;
   `Start_element ((name "Wix"), [name "xmlns", "http://schemas.microsoft.com/wix/2006/wi"]);
 
     `Start_element ((name "Product"), [
-      name "Name", Info.package_name;
-      name "Id", get_uuid @@ mode_package_version Info.package_name Info.package_version;
+      name "Name", Info.package_name ^ "." ^ exec_name;
+      name "Id", get_uuid @@ mode_package_exe_version Info.package_name exec_name Info.package_version;
       name "UpgradeCode", begin
         match Info.package_guid with
         | Some guid -> guid
-        | None -> get_uuid (mode_package Info.package_name)
+        | None -> get_uuid (mode_package_exe Info.package_name exec_name)
       end;
       name "Language", "1033";
       name "Codepage", "1252";
@@ -94,7 +95,7 @@ let main_wxs (module Info : INFO) : wxs =
 
           `Start_element ((name "Directory"), [
             name "Id", "INSTALLDIR";
-            name "Name", Info.package_name ^ " " ^ Info.package_version
+            name "Name", Info.package_name ^ "." ^ Info.package_version ^ "-" ^ exec_name
           ]);
 
             `Start_element ((name "Component"), [
@@ -177,7 +178,7 @@ let main_wxs (module Info : INFO) : wxs =
 
           `Start_element ((name "Directory"), [
             name "Id", "ProgramMenuDir";
-            name "Name", Info.package_name ^ " " ^ Info.package_version;
+            name "Name", Info.package_name ^ "." ^ Info.package_version ^ "-" ^ exec_name
           ]);
 
             `Start_element ((name "Component"), [
@@ -222,7 +223,7 @@ let main_wxs (module Info : INFO) : wxs =
 
             `Start_element ((name "Shortcut"), [
               name "Id", "desktop_" ^ normalize_id Info.exec_file;
-              name "Name", Info.package_name;
+              name "Name", exec_name;
               name "WorkingDirectory", "INSTALLDIR";
               name "Icon", Info.icon_file;
               name "Target", "[INSTALLDIR]" ^ Info.exec_file
@@ -264,7 +265,7 @@ let main_wxs (module Info : INFO) : wxs =
 
             `Start_element ((name "Shortcut"), [
               name "Id", "startmenu_" ^ normalize_id Info.exec_file;
-              name "Name", Info.package_name;
+              name "Name", exec_name;
               name "WorkingDirectory", "INSTALLDIR";
               name "Icon", Info.icon_file;
               name "Target", "[INSTALLDIR]" ^ Info.exec_file
@@ -304,8 +305,8 @@ let main_wxs (module Info : INFO) : wxs =
 
     `Start_element ((name "Feature"), [
       name "Id", "Complete";
-      name "Title",  Info.package_name ^ " " ^ Info.package_version;
-      name "Description", Info.package_name ^ " complete install.";
+      name "Title",  Info.package_name ^ "." ^ Info.package_version ^ "-" ^ exec_name;
+      name "Description", Info.package_name ^ "." ^ exec_name ^ " complete install.";
       name "Level", "1"
     ]);
 
