@@ -5,7 +5,7 @@ type wxs = signal list
 let xml_declaration = {
   version = "1.0";
   encoding = Some "windows-1252";
-  standalone = None
+  standalone = None;
 }
 
 let name s = ("", s)
@@ -18,7 +18,6 @@ let get_uuid mode =
 let mode_package_exe_version p e v = System.Exec (p, e, (Some v))
 let mode_package_exe p e = System.Exec (p, e, None)
 let mode_rand = System.Rand
-
 
 module type INFO = sig
   val path : string

@@ -1,2 +1,2 @@
 
-val get_dlls : string -> string list
+val get_dlls : OpamFilename.t -> OpamFilename.t list

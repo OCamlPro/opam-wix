@@ -22,10 +22,10 @@ let cygwin_from_windows_path path =
 
 
 let get_dlls path =
-  let dlls = System.(call Cygcheck path) in
+  let dlls = System.(call Cygcheck (OpamFilename.to_string path)) in
   List.tl dlls |>
   List.filter_map (fun dll ->
     let dll = String.trim dll in
     if filter_system32 dll
-    then Some (cygwin_from_windows_path dll)
+    then Some (cygwin_from_windows_path dll |> OpamFilename.of_string)
     else None)
