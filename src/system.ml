@@ -85,7 +85,7 @@ let call_list : type a. (a command * a) list -> unit =
       (Format.sprintf "%s" (OpamProcess.string_of_result result))
     | _ -> ()
 
-let which_commands wix_path =
+let check_avalable_commands wix_path =
   call_list [
     Which, "cygcheck";
     Which, "uuidgen";

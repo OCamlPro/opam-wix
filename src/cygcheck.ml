@@ -20,7 +20,6 @@ let cygwin_from_windows_path path =
   | [] -> ""
 
 
-
 let get_dlls path =
   let dlls = System.(call Cygcheck (OpamFilename.to_string path)) in
   List.tl dlls |>

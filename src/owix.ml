@@ -71,7 +71,7 @@ let write_to_file path content =
 let create_bundle cli =
   let create_bundle global_options conf () =
     OpamConsole.header_msg "Checking prerequistes";
-    System.check_avalable_commands conf.wix_path;
+    System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
     OpamConsole.header_msg "Initialising Opam";
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->

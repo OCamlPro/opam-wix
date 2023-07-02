@@ -24,7 +24,7 @@ module type INFO = sig
   val package_name : string
   val package_version : string
   val description : string
-  val manufacter : string
+  val manufacturer : string
   val package_guid : string option
   val tags : string list
   val exec_file : string
@@ -60,14 +60,14 @@ let main_wxs (module Info : INFO) : wxs =
       name "Language", "1033";
       name "Codepage", "1252";
       name "Version",  Info.package_version;
-      name "Manufacturer", Info.manufacter
+      name "Manufacturer", Info.manufacturer
     ]);
 
       `Start_element ((name "Package"), [
         name "Id", "*";
         name "Keywords", String.concat " " Info.tags;
         name "Description", Info.description;
-        name "Manufacturer", Info.manufacter;
+        name "Manufacturer", Info.manufacturer;
         name "InstallerVersion", "100";
         name "Languages", "1033";
         name "Compressed", "yes";
