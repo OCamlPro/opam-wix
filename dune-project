@@ -1,2 +1,2 @@
 (lang dune 2.7)
-(name owix)
+(name opam-wix)

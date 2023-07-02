@@ -1,5 +1,5 @@
 opam-version: "2.0"
-name: "owix"
+name: "opam-wix"
 version: "0.1"
 maintainer: "Mohamed Hernouf <mohamed.hernouf@ocamlpro.com>"
 authors: [
@@ -8,8 +8,8 @@ authors: [
 ]
 tags: ["wix" "msi" "windows" "cygwin"]
 license: "LGPL-2.1-only with OCaml-LGPL-linking-exception"
-homepage: "https://github.com/hernoufM/owix"
-bug-reports: "https://github.com/hernoufM/owix/issues"
+homepage: "https://github.com/OCamlPro/opam-wix"
+bug-reports: "https://github.com/OCamlPro/opam-wix/issues"
 available: (os = "cygwin")
 depends: [
   "ocaml" {build & >= "4.14.0"}
@@ -27,9 +27,13 @@ build: [
     "-p" name
     "@runtest" {with-test}
 ]
-dev-repo: "git+https://github.com/hernoufM/owix"
-synopsis: ""
+dev-repo: "git+https://github.com/OCamlPro/opam-wix"
+synopsis: "A tool that produces stand-alone MSI installer for Opam packages"
 description: """
-
+opam-wix is command-line tool that, generates MSI installer for Opam package and binaries in this way:
+- It searches for executable file within specified package that should be installed in
+current switch.
+- It imports all required DLLs for given binary.
+- It generates input and makes use of WiX toolset for generating MSI installer.
 """
 flags: plugin

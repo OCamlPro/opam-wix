@@ -169,7 +169,7 @@ let create_bundle cli =
         +! (Printf.sprintf "Package %s - binary %s"
               (OpamPackage.to_string package)
               (OpamFilename.to_string binary_path))
-      let manufacter =
+      let manufacturer =
         String.concat ", "
           (OpamFile.OPAM.maintainer opam)
       let package_guid = conf.package_guid

@@ -1,6 +1,6 @@
 (executable
- (name owix)
- (public_name owix)
+ (name opamWixMain)
+ (public_name opam-wix)
  (modes (native exe))
  (flags -w A-4-5-33-44-45-70)
  (libraries cmdliner str unix markup opam-format opam-client))

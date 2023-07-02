@@ -25,7 +25,7 @@ type light = {
   light_out : string
 }
 
-(** External commands that could be called and handled by {b owix}. *)
+(** External commands that could be called and handled by {b opam-wix}. *)
 type _ command =
   (** {b which} command, to check programs availability *)
   | Which : string command
