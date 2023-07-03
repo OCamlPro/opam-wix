@@ -42,7 +42,7 @@ let call_inner : type a. a command -> a -> string * string list =
     let light = Filename.concat light_wix_path "light.exe" in
     let args =
       List.flatten (List.map (fun e -> ["-ext"; e]) light_exts)
-      @ light_files @ [ "-o"; light_out ]
+      @ light_files @ ["-o"; light_out]
     in
     light, args
 
@@ -92,3 +92,17 @@ let check_avalable_commands wix_path =
     Which, Filename.concat wix_path "candle.exe";
     Which, Filename.concat wix_path "light.exe";
   ]
+
+let windows_from_cygwin_path cygwin_disk path =
+  match String.split_on_char '/' (String.trim path) with
+  | ""::"cygdrive" :: disk :: rest ->
+    let disk = String.uppercase_ascii disk ^ ":" in
+    String.concat "\\" (disk::rest)
+  | ""::rest ->
+    String.concat "\\" (cygwin_disk :: "cygwin64" :: rest)
+  | local ->
+    let cwd = OpamFilename.cwd () in
+    let path = Filename.concat (OpamFilename.Dir.to_string cwd) (String.concat "/" local) in
+    (match String.split_on_char '/' path with
+    | ""::rest | rest -> String.concat "\\" (cygwin_disk :: "cygwin64" :: rest))
+

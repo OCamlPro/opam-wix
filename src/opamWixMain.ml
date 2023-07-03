@@ -9,10 +9,35 @@ type config = {
   output_dir : dirname;
   wix_path : dirname;
   package_guid: string option;
-  icon_file : filename;
-  dlg_bmp : filename;
-  ban_bmp : filename
+  icon_file : filename option;
+  dlg_bmp : filename option;
+  ban_bmp : filename option
 }
+
+let get_data o filename =
+  try Option.get o with
+  | Invalid_argument _ -> OpamConsole.error_and_exit `Configuration_error
+  "Seems like you moved your %s. This file is required since it is used by default. \
+  If you want to replace it by your default choice, but keep the same name and path."
+  (OpamConsole.colorise `bold filename)
+
+(** Data directory with crunched content. Every pair value within represents filename and its content. *)
+module DataDir = struct
+  open DataDir
+  module Images = struct
+    let logo = "logo.ico", get_data (read "images/logo.ico") "data/images/logo.ico"
+    let dlgbmp = "dlgbmp.bmp", get_data (read "images/dlgbmp.bmp") "data/images/dlgbmp.bmp"
+    let banbmp = "bannrbmp.bmp", get_data (read "images/bannrbmp.bmp") "data/images/bannrbmp.bmp"
+  end
+  module Wix = struct
+    let custom_install_dir =
+      "CustomInstallDir.wxs",
+      get_data (read "wix/CustomInstallDir.wxs") "data/wix/CustomInstallDir.wxs"
+    let custom_install_dir_dlg =
+      "CustomInstallDirDlg.wxs",
+      get_data (read "wix/CustomInstallDirDlg.wxs") "data/wix/CustomInstallDirDlg.wxs"
+  end
+end
 
 module Args = struct
   open Arg
@@ -30,7 +55,7 @@ module Args = struct
     "The binary name to handle. Specified package should contain the binary with the same name."
 
   let output_dir =
-    value & opt OpamArg.dirname (OpamFilename.Dir.of_string ".") & info ["output"] ~docv:"DIR" ~doc:
+    value & opt OpamArg.dirname (OpamFilename.Dir.of_string ".") & info ["o";"output"] ~docv:"DIR" ~doc:
     "The output directory where bundle will be stored"
 
   let wix_path =
@@ -40,18 +65,19 @@ module Args = struct
 
   let package_guid =
     value & opt (some string) None & info ["pkg-guid"] ~docv:"UID" ~doc:
-    "The package GUID that will be used to update the same package with different version without processing throught Windows Apps & features panel."
+    "The package GUID that will be used to update the same package with different version without processing throught \
+    Windows Apps & features panel."
 
   let icon_file =
-    value & opt OpamArg.filename (OpamFilename.of_string "data/images/logo.ico") & info ["ico"] ~docv:"FILE" ~doc:
+    value & opt (some OpamArg.filename) None & info ["ico"] ~docv:"FILE" ~doc:
     "Logo icon that will be used for application."
 
   let dlg_bmp =
-    value & opt OpamArg.filename (OpamFilename.of_string "data/images/dlgbmp.bmp") & info ["dlg-bmp"] ~docv:"FILE" ~doc:
+    value & opt (some OpamArg.filename) None & info ["dlg-bmp"] ~docv:"FILE" ~doc:
     "BMP file that is used as background for dialog window for installer."
 
   let ban_bmp =
-    value & opt OpamArg.filename (OpamFilename.of_string "data/images/bannrbmp.bmp") & info ["ban-bmp"] ~docv:"FILE" ~doc:
+    value & opt (some OpamArg.filename) None & info ["ban-bmp"] ~docv:"FILE" ~doc:
     "BMP file that is used as background for banner for installer."
 
   let term =
@@ -63,16 +89,10 @@ module Args = struct
 
 end
 
-let write_to_file path content =
-  let oc = open_out path in
-  Out_channel.output_string oc content;
-  close_out oc
-
 let create_bundle cli =
   let create_bundle global_options conf () =
-    OpamConsole.header_msg "Checking prerequistes";
-    System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
     OpamConsole.header_msg "Initialising Opam";
+    System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->
     OpamSwitchState.with_ `Lock_read gt @@ fun st ->
@@ -150,15 +170,27 @@ let create_bundle cli =
       then OpamFilename.Base.add_extension base "exe"
       else base
     in
+    let copy_data data_path (name, content) =
+      match data_path with
+      | Some path -> OpamFilename.copy_in path bundle_dir
+      | None -> OpamFilename.write OpamFilename.Op.(bundle_dir // name) content
+    in
     OpamFilename.copy ~src:binary_path ~dst:(OpamFilename.create bundle_dir exe_base);
-    OpamFilename.copy_in conf.icon_file bundle_dir;
-    OpamFilename.copy_in conf.dlg_bmp bundle_dir;
-    OpamFilename.copy_in conf.ban_bmp bundle_dir;
+    copy_data conf.icon_file DataDir.Images.logo;
+    copy_data conf.dlg_bmp DataDir.Images.dlgbmp;
+    copy_data conf.ban_bmp DataDir.Images.banbmp;
     OpamConsole.formatted_msg "Bundle created.";
+    let data_basename data (name,_) =
+      match data with
+      | Some data ->
+        OpamFilename.basename data
+        |> OpamFilename.Base.to_string
+      | None -> name
+    in
     let module Info = struct
       open OpamStd.Option.Op
       let path =
-        OpamFilename.Dir.to_string bundle_dir
+        Filename.basename @@ OpamFilename.Dir.to_string bundle_dir
       let package_name =
         OpamPackage.Name.to_string (OpamPackage.name package)
       let package_version =
@@ -177,30 +209,70 @@ let create_bundle cli =
       let exec_file =
         OpamFilename.Base.to_string exe_base
       let dlls = List.map (fun dll -> OpamFilename.basename dll|> OpamFilename.Base.to_string) dlls
-      let icon_file = OpamFilename.basename conf.icon_file |> OpamFilename.Base.to_string
-      let dlg_bmp_file = OpamFilename.basename conf.dlg_bmp |> OpamFilename.Base.to_string
-      let banner_bmp_file = OpamFilename.basename conf.ban_bmp |> OpamFilename.Base.to_string
+      let icon_file = data_basename conf.icon_file DataDir.Images.logo
+      let dlg_bmp_file = data_basename conf.dlg_bmp DataDir.Images.dlgbmp
+      let banner_bmp_file = data_basename conf.ban_bmp DataDir.Images.banbmp
     end in
     OpamConsole.header_msg "WiX setup";
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension (OpamFilename.Base.to_string exe_base) in
-    Wix.write_wxs (name ^ ".wxs") wxs;
+    let (addwxs1,content1),(addwxs2,content2)  =
+      DataDir.Wix.custom_install_dir,
+      DataDir.Wix.custom_install_dir_dlg
+    in
+    OpamFilename.write OpamFilename.Op.(tmp_dir//addwxs1) content1;
+    OpamFilename.write OpamFilename.Op.(tmp_dir//addwxs2) content2;
+    let additional_wxs = List.map
+      (fun d -> OpamFilename.to_string d |> System.windows_from_cygwin_path "C:")
+      OpamFilename.Op.[ tmp_dir//addwxs1; tmp_dir//addwxs2 ]
+    in
+    let main_path = OpamFilename.Op.(tmp_dir // (name ^ ".wxs")) in
+    Wix.write_wxs (OpamFilename.to_string main_path) wxs;
     OpamConsole.formatted_msg "Compiling WiX components...\n";
+    let wxs_files =
+      (OpamFilename.to_string main_path |> System.windows_from_cygwin_path "C:")
+      :: additional_wxs
+    in
     let candle = System.{
       candle_wix_path = OpamFilename.Dir.to_string conf.wix_path;
-      candle_files = [name ^ ".wxs"; "data/wix/CustomInstallDir.wxs"; "data/wix/CustomInstallDirDlg.wxs"];
+      candle_files = wxs_files
     }
     in
     System.call_unit System.Candle candle;
+    OpamFilename.remove (OpamFilename.of_string (name ^ ".wxs"));
+    OpamFilename.remove (OpamFilename.of_string addwxs1);
+    OpamFilename.remove (OpamFilename.of_string addwxs2);
+    let main_obj = name ^ ".wixobj" in
+    let addwxs1_obj = Filename.chop_extension addwxs1 ^ ".wixobj" in
+    let addwxs2_obj = Filename.chop_extension addwxs2 ^ ".wixobj" in
+    OpamFilename.move ~src:(OpamFilename.of_string main_obj)
+      ~dst:OpamFilename.Op.(tmp_dir // main_obj);
+    OpamFilename.move ~src:(OpamFilename.of_string addwxs1_obj)
+      ~dst:OpamFilename.Op.(tmp_dir // addwxs1_obj);
+    OpamFilename.move ~src:(OpamFilename.of_string addwxs2_obj)
+      ~dst:OpamFilename.Op.(tmp_dir // addwxs2_obj);
+    let wixobj_files = [
+      Filename.concat (OpamFilename.Dir.to_string tmp_dir) main_obj
+        |> System.windows_from_cygwin_path "C:";
+      Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs1_obj
+        |> System.windows_from_cygwin_path "C:";
+      Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs2_obj
+        |> System.windows_from_cygwin_path "C:"
+    ]
+    in
     let light = System.{
       light_wix_path = OpamFilename.Dir.to_string conf.wix_path;
-      light_files = [name ^ ".wixobj"; "CustomInstallDir.wixobj"; "CustomInstallDirDlg.wixobj"];
+      light_files = wixobj_files;
       light_exts = ["WixUIExtension"; "WixUtilExtension"];
-      light_out = OpamFilename.to_string OpamFilename.Op.(conf.output_dir // (name ^ ".msi"))
+      light_out = (name ^ ".msi")
     }
     in
     OpamConsole.formatted_msg "Producing final msi...\n";
     System.call_unit System.Light light;
+    OpamFilename.remove (OpamFilename.of_string (name ^ ".wixpdb"));
+    OpamFilename.move
+      ~src:(OpamFilename.of_string (name ^ ".msi"))
+      ~dst:OpamFilename.Op.(conf.output_dir // (name ^ ".msi"));
     OpamConsole.formatted_msg "Done.\n";
     OpamSwitchState.drop st;
     OpamGlobalState.drop gt
@@ -224,10 +296,10 @@ let create_bundle cli =
     `I ("$(i,*.dll)",
       "All executable's dependencies libriries found with $(b,cygcheck).");
     `I ("$(i,icon and *.bmp)",
-      "Additional files used by installer to customise GUI. Options ($b,--ico), ($b,--dlg-bmp) and ($b,--ban-bmp) \
-      could be used to bundle custom files.");
-    `P "Additionnaly, installer gives to user a possibility to create a shortcut on Desktop and Start menu as well as \
-    adding installation folder to the PATH."
+      "Additional files used by installer to customise GUI. Options $(b,--ico), $(b,--dlg-bmp) and \
+      $(b,--ban-bmp) could be used to bundle custom files.");
+    `P "Additionnaly, installer gives to user a possibility to create a shortcut on Desktop and Start \
+    menu as well as adding installation folder to the PATH."
   ]
   in
   OpamArg.mk_command ~cli OpamArg.cli_original "opam-wix" ~doc ~man

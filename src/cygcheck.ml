@@ -21,7 +21,18 @@ let cygwin_from_windows_path path =
 
 
 let get_dlls path =
-  let dlls = System.(call Cygcheck (OpamFilename.to_string path)) in
+  let check_consistency result =
+    (* if cygchecks produces less then 3 lines, it signifies an error *)
+    if List.length result > 2
+    then result
+    else raise @@
+      System.System_error "cygcheck raised an error. You probably choosed a file \
+      with invalid format as your binary."
+  in
+  let dlls =
+    System.(call Cygcheck (OpamFilename.to_string path))
+    |> check_consistency
+  in
   List.tl dlls |>
   List.filter_map (fun dll ->
     let dll = String.trim dll in
