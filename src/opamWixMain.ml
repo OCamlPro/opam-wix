@@ -42,16 +42,21 @@ end
 module Args = struct
   open Arg
 
+  module Section = struct
+    let package_arg = "PACKAGE ARGUMENT"
+    let bin_args = "BINARY ARGUMENT"
+  end
+
   let package =
-    required & pos 0 (some OpamArg.package_name) None & info [] ~docv:"PACKAGE"
+    required & pos 0 (some OpamArg.package_name) None & info [] ~docv:"PACKAGE" ~docs:Section.package_arg
     ~doc:"The package to create an installer"
 
   let path =
-    value & opt (some OpamArg.filename) None & info ["binary-path";"bp"] ~docv:"PROGRAM" ~doc:
+    value & opt (some OpamArg.filename) None & info ["binary-path";"bp"] ~docs:Section.bin_args ~docv:"PATH" ~doc:
     "The path to the binary file to handle"
 
   let binary =
-    value & opt (some string) None & info ["binary";"b"] ~docv:"PROGRAM" ~doc:
+    value & opt (some string) None & info ["binary";"b"] ~docs:Section.bin_args ~docv:"NAME" ~doc:
     "The binary name to handle. Specified package should contain the binary with the same name."
 
   let output_dir =
@@ -281,6 +286,8 @@ let create_bundle cli =
     "Windows MSI installer generation for Opam packages"
   in
   let man = [
+    `S Manpage.s_synopsis;
+    `P "$(b,opam-wix) $(i,PACKAGE) [-b $(i,NAME)|--bp $(i,PATH)] [$(i,OTHER OPTION)]… ";
     `S Manpage.s_description;
     `P "This utility is an opam plugin that generates a standalone MSI file. This file is \
     used by Windows Installer to make available a chosen executable from an Opam package \
