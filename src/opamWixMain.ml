@@ -228,14 +228,14 @@ let create_bundle cli =
     OpamFilename.write OpamFilename.Op.(tmp_dir//addwxs1) content1;
     OpamFilename.write OpamFilename.Op.(tmp_dir//addwxs2) content2;
     let additional_wxs = List.map
-      (fun d -> OpamFilename.to_string d |> System.windows_from_cygwin_path "C:")
+      (fun d -> OpamFilename.to_string d |> System.cyg_win_path `WinAbs)
       OpamFilename.Op.[ tmp_dir//addwxs1; tmp_dir//addwxs2 ]
     in
     let main_path = OpamFilename.Op.(tmp_dir // (name ^ ".wxs")) in
     Wix.write_wxs (OpamFilename.to_string main_path) wxs;
     OpamConsole.formatted_msg "Compiling WiX components...\n";
     let wxs_files =
-      (OpamFilename.to_string main_path |> System.windows_from_cygwin_path "C:")
+      (OpamFilename.to_string main_path |> System.cyg_win_path `WinAbs)
       :: additional_wxs
     in
     let candle = System.{
@@ -258,11 +258,11 @@ let create_bundle cli =
       ~dst:OpamFilename.Op.(tmp_dir // addwxs2_obj);
     let wixobj_files = [
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) main_obj
-        |> System.windows_from_cygwin_path "C:";
+        |> System.cyg_win_path `WinAbs;
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs1_obj
-        |> System.windows_from_cygwin_path "C:";
+        |> System.cyg_win_path `WinAbs;
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs2_obj
-        |> System.windows_from_cygwin_path "C:"
+        |> System.cyg_win_path `WinAbs
     ]
     in
     let light = System.{

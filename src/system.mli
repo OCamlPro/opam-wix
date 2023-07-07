@@ -24,10 +24,19 @@ type light = {
   light_out : string
 }
 
+(** Expected output path type *)
+type cygpath_out = [
+  | `Win (** Path Windows *)
+  | `WinAbs (** Absolute Path Windows *)
+  | `Cyg (** Path Cygwin *)
+  | `CygAbs (** Absolute Path Cygwin *)
+  ]
+
 (** External commands that could be called and handled by {b opam-wix}. *)
 type _ command =
   | Which : string command  (** {b which} command, to check programs availability *)
   | Cygcheck: string command   (** {b cygcheck} command to get binaries' DLLs paths *)
+  | Cygpath : (cygpath_out * string) command (** {b cygpath} command to translate path between cygwin and windows and vice-versa *)
   | Uuidgen : uuid_mode command  (** {b uuidgen} command to create a new UUID value, based on seed. *)
   | Candle : candle command  (** {b candle.exe} command as a part of WiX toolset to compile Wix source files. *)
   | Light : light command  (** {b light.exe} command as a part of WiX toolset to link all compiled Wix source files in MSI. *)
@@ -45,6 +54,5 @@ val call_list : ('a command * 'a) list -> unit
 (** Checks if all handled commands are available system-widely. *)
 val check_avalable_commands : string -> unit
 
-(** [windows_from_cygwin_path cygwin_disk path] translates cygwin path to windows path.
-    [cygwin_disk] indicates disk name ("C:", "D:") where cygwin root is stored in {i cygwin64} folder*)
-val windows_from_cygwin_path : string -> string -> string
+(** Performs path translations between Windows and Cygwin. See [System.cygpath_out] for more details. *)
+val cyg_win_path : cygpath_out -> string -> string
