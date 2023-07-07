@@ -63,7 +63,7 @@ SYNOPSIS
 DESCRIPTION
        This utility is an opam plugin that generates a standalone MSI file.
        This file is used by Windows Installer to make available a chosen
-       executable from an Opam package throughout the entire system.
+       executable from an opam package throughout the entire system.
 
        Generated MSI indicates to system to create an installation directory
        named 'Package Version.Executable' under "Program Files" folder and to
