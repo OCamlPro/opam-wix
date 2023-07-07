@@ -96,7 +96,7 @@ end
 
 let create_bundle cli =
   let create_bundle global_options conf () =
-    OpamConsole.header_msg "Initialising Opam";
+    OpamConsole.header_msg "Initialising opam";
     System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->
@@ -104,7 +104,7 @@ let create_bundle cli =
     let package =
       try OpamSwitchState.find_installed_package_by_name st conf.package
       with Not_found -> OpamConsole.error_and_exit `Not_found
-      "Package %s isn't found in your current switch. Please, run %s and retry."
+      "Package %s isn't found in your current swFitch. Please, run %s and retry."
       (OpamConsole.colorise `bold (OpamPackage.Name.to_string conf.package))
       (OpamConsole.colorise `bold ("opam install " ^ (OpamPackage.Name.to_string conf.package)))
     in
@@ -283,14 +283,14 @@ let create_bundle cli =
     OpamGlobalState.drop gt
   in
   let doc =
-    "Windows MSI installer generation for Opam packages"
+    "Windows MSI installer generation for opam packages"
   in
   let man = [
     `S Manpage.s_synopsis;
     `P "$(b,opam-wix) $(i,PACKAGE) [-b $(i,NAME)|--bp $(i,PATH)] [$(i,OTHER OPTION)]… ";
     `S Manpage.s_description;
     `P "This utility is an opam plugin that generates a standalone MSI file. This file is \
-    used by Windows Installer to make available a chosen executable from an Opam package \
+    used by Windows Installer to make available a chosen executable from an opam package \
     throughout the entire system.";
     `P "Generated MSI indicates to system to create an installation directory named \
     '$(b,Package Version.Executable)' under \"Program Files\" folder and to store there \
