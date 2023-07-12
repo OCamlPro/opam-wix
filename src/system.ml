@@ -24,9 +24,12 @@ type light = {
   light_out : string
 }
 
+type cygpath_out = [ `Win | `WinAbs | `Cyg | `CygAbs ]
+
 type _ command =
   | Which : string command
-  | Cygcheck: string command
+  | Cygcheck : string command
+  | Cygpath : (cygpath_out * string) command
   | Uuidgen : uuid_mode command
   | Candle : candle command
   | Light : light command
@@ -36,9 +39,17 @@ exception System_error of string
 let call_inner : type a. a command -> a -> string * string list =
   fun command args -> match command, args with
   | Which, (path : string) ->
-    "which", [path]
+    "which", [ path ]
   | Cygcheck, path ->
     "cygcheck", [ path ]
+  | Cygpath, (out, path) ->
+    let opts = match out with
+      | `Win -> "-w"
+      | `WinAbs -> "-wa"
+      | `Cyg -> "-u"
+      | `CygAbs -> "-ua"
+    in
+    "cygpath", [ opts; path ]
   | Uuidgen, Rand ->
     "uuidgen", []
   | Uuidgen, Exec (p,e,v) ->
@@ -98,12 +109,13 @@ let call_list : type a. (a command * a) list -> unit =
 let check_avalable_commands wix_path =
   call_list [
     Which, "cygcheck";
+    Which, "cygpath";
     Which, "uuidgen";
     Which, Filename.concat wix_path "candle.exe";
     Which, Filename.concat wix_path "light.exe";
   ]
 
-let windows_from_cygwin_path cygwin_disk path =
+(* let windows_from_cygwin_path cygwin_disk path =
   match String.split_on_char '/' (String.trim path) with
   | ""::"cygdrive" :: disk :: rest ->
     let disk = String.uppercase_ascii disk ^ ":" in
@@ -116,3 +128,5 @@ let windows_from_cygwin_path cygwin_disk path =
     (match String.split_on_char '/' path with
     | ""::rest | rest -> String.concat "\\" (cygwin_disk :: "cygwin64" :: rest))
 
+ *)
+let cyg_win_path out path = call Cygpath (out,path) |> List.hd |> String.trim
