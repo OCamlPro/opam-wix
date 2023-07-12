@@ -7,10 +7,10 @@ authors: [
     "Mohamed Hernouf"
 ]
 tags: ["wix" "msi" "windows" "cygwin"]
-license: "LGPL-2.1-only with OCaml-LGPL-linking-exception"
+license: "GPLv3"
 homepage: "https://github.com/OCamlPro/opam-wix"
 bug-reports: "https://github.com/OCamlPro/opam-wix/issues"
-available: (os = "cygwin")
+#available: { os = "cygwin" }
 depends: [
   "ocaml" {build & >= "4.14.0"}
   "ocamlfind" {build}
