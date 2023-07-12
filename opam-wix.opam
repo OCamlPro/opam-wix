@@ -31,7 +31,7 @@ build: [
 dev-repo: "git+https://github.com/OCamlPro/opam-wix"
 synopsis: "A tool that produces stand-alone MSI installer for opam packages"
 description: """
-opam-wix is command-line tool that, generates MSI installer for ospam package and binaries in this way:
+opam-wix is command-line tool that, generates MSI installer for opam package and binaries in this way:
 - It searches for executable file within specified package that should be installed in
 current switch.
 - It imports all required DLLs for given binary.

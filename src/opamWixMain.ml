@@ -114,7 +114,7 @@ let create_bundle cli =
     let package =
       try OpamSwitchState.find_installed_package_by_name st conf.package
       with Not_found -> OpamConsole.error_and_exit `Not_found
-      "Package %s isn't found in your current swFitch. Please, run %s and retry."
+      "Package %s isn't found in your current switch. Please, run %s and retry."
       (OpamConsole.colorise `bold (OpamPackage.Name.to_string conf.package))
       (OpamConsole.colorise `bold ("opam install " ^ (OpamPackage.Name.to_string conf.package)))
     in
