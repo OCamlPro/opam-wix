@@ -145,5 +145,10 @@ After installation is done, you would like to remove it one day. For this purpos
 
 <img src="etc/images/Remove.png" alt="drawing" style="width:400px"/>
 
-
 ## Licence
+
+Copyright 2023 OCamlPro
+
+All rights reserved. This file is distributed under the terms of the
+GNU Lesser General Public License version 2.1, with the special
+exception on linking described in the file LICENSE.
