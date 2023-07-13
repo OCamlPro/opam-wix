@@ -10,6 +10,7 @@ jobs:
       fail-fast: true
       matrix:
         os:
+          - ubuntu-latest
           - windows-latest
         ocaml-compiler:
           - 4.14.x
@@ -27,5 +28,8 @@ jobs:
 
       - run: opam install . --deps-only
       - run: opam exec -- dune build
+      - run: opam config report
       - run: opam install .
+        if: matrix.os == 'windows-latest'
       - run: opam wix --help
+        if: matrix.os == 'windows-latest'
