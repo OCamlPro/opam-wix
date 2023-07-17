@@ -17,9 +17,13 @@ To install the opam-wix plugin, follow these steps:
 #### 1. Install opam
 First, make sure you have opam installed.
 
-If not, the easiest way is to install it via cygwin: package `ocaml`, `opam` and `gcc-g++` for mccs. In the next version of opam, there will be cygwin depexts handling, you'lle no more need to install it manually. You can run this command to install everything, don't forget to replace `c:\\cygwin64` by your Cygwin root:
+If not, the easiest way is to install it via Cygwin: package `ocaml`, `opam` and `gcc-g++`
+for mccs. In the next version of opam, there will be cygwin depexts handling, you'lle no
+more need to install it manually.
+You can install `ocaml`, `opam`, and `gcc-g++` Cygwin packages, or run this command,
+don't forget to replace `C:\\cygwin64` by your Cygwin root:
 ```bash
-setupx86-64 --root C:\\cygwin64 --quite-mode --no-desktop --no-adminmenu --no-startmenu --packages=ocaml,opam,gcc-g++
+path/to/setupx86-64 --root C:\\cygwin64 --quite-mode --no-desktop --no-adminmenu --no-startmenu --packages=ocaml,opam,gcc-g++
 ```
 Then you can initialise your opam with the default repository.
 ```bash
