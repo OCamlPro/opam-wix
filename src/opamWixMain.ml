@@ -13,6 +13,7 @@ open OpamTypes
 open OpamStateTypes
 
 type config = {
+  conf: OpamFilename.t option;
   package : OpamPackage.Name.t;
   path : filename option;
   binary: string option;
@@ -57,6 +58,10 @@ module Args = struct
     let bin_args = "BINARY ARGUMENT"
   end
 
+  let conffile =
+    value & opt (some OpamArg.filename) None & info ["conf";"c"] ~docv:"PATH" ~docs:Section.bin_args
+    ~doc:"Configuration file for the binary to install"
+
   let package =
     required & pos 0 (some OpamArg.package_name) None & info [] ~docv:"PACKAGE" ~docs:Section.package_arg
     ~doc:"The package to create an installer"
@@ -96,18 +101,22 @@ module Args = struct
     "BMP file that is used as background for banner for installer."
 
   let term =
-    let apply package path binary output_dir wix_path package_guid icon_file dlg_bmp ban_bmp =
-      { package; path; binary; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp }
+    let apply conf package path binary output_dir wix_path package_guid icon_file dlg_bmp ban_bmp =
+      { conf; package; path; binary; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp }
     in
-    Term.(const apply $ package $ path $ binary $ output_dir $ wix_path $ package_guid $ icon_file $
+    Term.(const apply $ conffile $ package $ path $ binary $ output_dir $ wix_path $ package_guid $ icon_file $
       dlg_bmp $ ban_bmp)
 
 end
 
 let create_bundle cli =
   let create_bundle global_options conf () =
-    OpamConsole.header_msg "Initialising opam";
+    let conffile =
+      let file = OpamStd.Option.default File.conf_default conf.conf in
+      File.Conf.safe_read (OpamFile.make file)
+    in
     System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
+    OpamConsole.header_msg "Initialising opam";
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->
     OpamSwitchState.with_ `Lock_read gt @@ fun st ->
