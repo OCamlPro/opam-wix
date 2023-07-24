@@ -11,19 +11,30 @@
 open OpamTypes
 open OpamFile
 
+(** Default path of config file *)
 val conf_default: filename
+
+(** Module that englobes config type and file primitives to read config file. *)
 module Conf: sig
 
-  type images = { ico: filename ; bng: filename; ban: filename }
-  type t = {
-    c_version: OpamVersion.t;
-    c_images: images;
-    c_binary_path: filename option;
-    c_binary: string option;
-    c_embbed_dir : dirname list;
-    c_embbed_file : filename list;
-    c_envvar: (string * string) list;
+  (** Images files *)
+  type images = {
+    ico: filename option;
+    dlg: filename option;
+    ban: filename option
   }
+
+  (** Content of config file *)
+  type t = {
+    c_version: OpamVersion.t; (* Config file version *)
+    c_images: images; (* Images files that are treated not as other embedded files *)
+    c_binary_path: filename option; (* Path to binary to install *)
+    c_binary: string option; (* Binary name to install *)
+    c_embbed_dir : dirname list; (* Directories to embed in installation directory *)
+    c_embbed_file : filename list; (* Files to embed in installation directory *)
+    c_envvar: (string * string) list; (* Environement variables to set in Windows Terminal on installation *)
+  }
+
   include IO_FILE with type t := t
 
 end

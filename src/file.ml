@@ -17,7 +17,7 @@ let conf_default = OpamFilename.of_string "opam-wix.conf"
 module Syntax = struct
   let internal = "conf"
   let format_version = OpamVersion.of_string "0.1"
-  type images = { ico: filename ; bng: filename; ban: filename }
+  type images = { ico: filename option; dlg: filename option; ban: filename option }
   type t = {
     c_version: OpamVersion.t;
     c_images: images;
@@ -31,9 +31,9 @@ module Syntax = struct
   let empty = {
     c_version = format_version;
     c_images = {
-      ico = OpamFilename.of_string "data/images/logo.ico";
-      bng = OpamFilename.of_string "data/images/dlgbmp.bmp";
-      ban = OpamFilename.of_string "data/images/bannrbmp.bmp";
+      ico = None;
+      dlg = None;
+      ban = None;
     };
     c_binary_path = None;
     c_binary = None;
@@ -46,16 +46,16 @@ module Syntax = struct
     "opamwix-version", OpamPp.ppacc
       (fun c_version t -> { t with c_version}) (fun t -> t.c_version)
       (OpamFormat.V.string -| OpamPp.of_module "version" (module OpamVersion));
-    "ico", OpamPp.ppacc
-      (fun ico t -> { t with c_images = { t.c_images with ico } })
+    "ico", OpamPp.ppacc_opt
+      (fun ico t -> { t with c_images = { t.c_images with ico = Some ico } })
       (fun t -> t.c_images.ico)
       (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
-    "bng", OpamPp.ppacc
-      (fun bng t -> { t with c_images = { t.c_images with bng } })
-      (fun t -> t.c_images.bng)
+    "bng", OpamPp.ppacc_opt
+      (fun dlg t -> { t with c_images = { t.c_images with dlg = Some dlg } })
+      (fun t -> t.c_images.dlg)
       (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
-    "ban", OpamPp.ppacc
-      (fun ban t -> { t with c_images = { t.c_images with ban } })
+    "ban", OpamPp.ppacc_opt
+      (fun ban t -> { t with c_images = { t.c_images with ban = Some ban } })
       (fun t -> t.c_images.ban)
       (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
     "binary-path", OpamPp.ppacc_opt

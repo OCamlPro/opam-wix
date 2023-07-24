@@ -109,12 +109,30 @@ module Args = struct
 
 end
 
+let normalize_conf conf file =
+  let open File.Conf in
+  (* argument has precedence over config *)
+  let merge_opt first second =
+    match first with
+    | None -> second
+    | _ -> first
+  in
+  {
+    conf with
+    path = merge_opt conf.path file.c_binary_path;
+    binary = merge_opt conf.binary file.c_binary;
+    icon_file = merge_opt conf.icon_file file.c_images.ico;
+    dlg_bmp = merge_opt conf.dlg_bmp file.c_images.dlg;
+    ban_bmp = merge_opt conf.ban_bmp file.c_images.ban
+  }
+
 let create_bundle cli =
   let create_bundle global_options conf () =
     let conffile =
       let file = OpamStd.Option.default File.conf_default conf.conf in
       File.Conf.safe_read (OpamFile.make file)
     in
+    let conf = normalize_conf conf conffile in
     System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
     OpamConsole.header_msg "Initialising opam";
     OpamArg.apply_global_options cli global_options;
