@@ -34,6 +34,18 @@ type light = {
   light_out : string
 }
 
+(** Configuration options for {i heat} command as a part of WiX tools, that generates wxs file
+    for given directory structure. Consists of the path to WiX toolset binaries, directory path,
+    output filname, component group that could be used in main file to reference a generated feature
+    and reference to a directory tag in the main wxs file. *)
+type heat = {
+  heat_wix_path : string;
+  heat_dir : string;
+  heat_out : string;
+  heat_component_group : string;
+  heat_directory_ref : string
+}
+
 (** Expected output path type *)
 type cygpath_out = [
   | `Win (** Path Windows *)
@@ -50,6 +62,7 @@ type _ command =
   | Uuidgen : uuid_mode command  (** {b uuidgen} command to create a new UUID value, based on seed. *)
   | Candle : candle command  (** {b candle.exe} command as a part of WiX toolset to compile Wix source files. *)
   | Light : light command  (** {b light.exe} command as a part of WiX toolset to link all compiled Wix source files in MSI. *)
+  | Heat : heat command  (** {b heat.exe} command as a part of WiX toolset to generate WiX source for specified directory. *)
 
 (** Calls given command with its arguments and parses output, line by line. Raises [System_error]
     with command's output when command exits with non-zero exit status. *)

@@ -11,6 +11,12 @@
 (** Wxs document type. *)
 type wxs
 
+(** Component group id *)
+type component_group = string
+
+(** Directory id reference *)
+type directory_ref = string
+
 (** Information module used to generated main wxs document. *)
 module type INFO = sig
     (** Path to the bundle containing all required files. Every relative file path will be concatenated to this path *)
@@ -49,6 +55,12 @@ module type INFO = sig
 
     (** Banner bmp filename. *)
     val banner_bmp_file : string
+
+    (** Embedded directories information (reference another wxs file) *)
+    val embedded_dirs : (string * component_group * directory_ref) list
+
+    (** Embedded files *)
+    val embedded_files : string list
 end
 
 (** [main_wxs (module Info)] produces content for main Wix source file. Input represents a

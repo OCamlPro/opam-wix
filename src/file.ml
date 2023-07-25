@@ -23,7 +23,7 @@ module Syntax = struct
     c_images: images;
     c_binary_path: filename option;
     c_binary: string option;
-    c_embbed_dir : dirname list;
+    c_embbed_dir : (basename * dirname) list;
     c_embbed_file : filename list;
     c_envvar: (string * string) list;
   }
@@ -71,8 +71,10 @@ module Syntax = struct
          (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename)));
     "embbed-dir", OpamPp.ppacc
       (fun dir t -> { t with c_embbed_dir = dir }) (fun t -> t.c_embbed_dir)
-      (OpamFormat.V.map_list ~depth:1
-         (OpamFormat.V.string -| OpamPp.of_module "dirname" (module OpamFilename.Dir)));
+      (OpamFormat.V.map_list ~depth:2
+        (OpamFormat.V.map_pair
+         (OpamFormat.V.string -| OpamPp.of_module "basename" (module OpamFilename.Base))
+         (OpamFormat.V.string -| OpamPp.of_module "dirname" (module OpamFilename.Dir))));
     "envvar", OpamPp.ppacc
       (fun c_envvar t -> { t with c_envvar }) (fun t -> t.c_envvar)
       (OpamFormat.V.map_list ~depth:2

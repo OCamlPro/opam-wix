@@ -12,6 +12,10 @@ open Markup
 
 type wxs = signal list
 
+type component_group = string
+
+type directory_ref = string
+
 let xml_declaration = {
   version = "1.0";
   encoding = Some "windows-1252";
@@ -42,7 +46,8 @@ module type INFO = sig
   val icon_file : string
   val dlg_bmp_file : string
   val banner_bmp_file : string
-
+  val embedded_dirs : (string * component_group * directory_ref) list
+  val embedded_files : string list
 end
 
 let normalize_id =
@@ -171,6 +176,37 @@ let main_wxs (module Info : INFO) : wxs =
               ]);
               `End_element])
               Info.dlls
+            |> List.flatten)
+
+            @ [
+            `End_element;
+
+            `Start_element ((name "Component"), [
+              name "Id", "Embedded";
+              name "Guid", get_uuid mode_rand
+            ]);
+            ] @
+
+            (List.map (fun (dirname, _,dir_ref) -> [
+              `Start_element ((name "Directory"), [
+                name "Id", dir_ref;
+                name "Name", dirname;
+              ]);
+              `End_element])
+              Info.embedded_dirs
+            |> List.flatten)
+
+            @
+
+            (List.map (fun base -> [
+              `Start_element ((name "File"), [
+                name "Id", normalize_id base;
+                name "Name", base;
+                name "DiskId", "1";
+                name "Source", path base;
+              ]);
+              `End_element])
+              Info.embedded_files
             |> List.flatten)
 
             @ [
@@ -327,7 +363,17 @@ let main_wxs (module Info : INFO) : wxs =
 
       `Start_element ((name "ComponentRef"), [ name "Id", "Dlls" ]);
       `End_element;
+      ] @
 
+      (List.map (fun (_, cg, _) -> [
+        `Start_element ((name "ComponentGroupRef"), [
+          name "Id", cg;
+        ]);
+        `End_element])
+        Info.embedded_dirs
+      |> List.flatten)
+
+      @ [
       `Start_element ((name "ComponentRef"), [ name "Id", "ApplicationShortcutDektop" ]);
       `End_element;
 
