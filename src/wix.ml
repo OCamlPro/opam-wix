@@ -48,6 +48,7 @@ module type INFO = sig
   val banner_bmp_file : string
   val embedded_dirs : (string * component_group * directory_ref) list
   val embedded_files : string list
+  val environement : (string * string) list
 end
 
 let normalize_id =
@@ -138,6 +139,29 @@ let main_wxs (module Info : INFO) : wxs =
 
             `Start_element ((name "Component"), [
               name "Id", "SetEnviroment";
+              name "Guid", get_uuid mode_rand
+            ]);
+            ] @
+
+            (List.map (fun (var,value) -> [
+              `Start_element ((name "Environment"), [
+                name "Id", var;
+                name "Name", var;
+                name "Value", value;
+                name "Permanent", "no";
+                name "Part", "last";
+                name "Action", "set";
+                name "System", "yes"
+              ]);
+              `End_element])
+              Info.environement
+            |> List.flatten)
+
+            @ [
+            `End_element;
+
+            `Start_element ((name "Component"), [
+              name "Id", "SetEnviromentPath";
               name "Guid", get_uuid mode_rand
             ]);
 
@@ -381,6 +405,9 @@ let main_wxs (module Info : INFO) : wxs =
       `End_element;
 
       `Start_element ((name "ComponentRef"), [ name "Id", "SetEnviroment" ]);
+      `End_element;
+
+      `Start_element ((name "ComponentRef"), [ name "Id", "SetEnviromentPath" ]);
       `End_element;
 
     `End_element;

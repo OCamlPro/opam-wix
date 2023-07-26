@@ -61,6 +61,9 @@ module type INFO = sig
 
     (** Embedded files *)
     val embedded_files : string list
+
+    (** Environement variables to set/unset in Windows terminal on install/uninstall respectively. *)
+    val environement : (string * string) list
 end
 
 (** [main_wxs (module Info)] produces content for main Wix source file. Input represents a

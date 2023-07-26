@@ -326,6 +326,7 @@ let create_bundle cli =
         let base = OpamFilename.Base.to_string base in
         base, component_group base, dir_ref base) embedded_dirs
       let embedded_files = List.map OpamFilename.Base.to_string embedded_files
+      let environement = conffile.File.Conf.c_envvar
     end in
     System.call_list @@ List.map (fun (basename, dirname) ->
       let basename = OpamFilename.Base.to_string basename in
