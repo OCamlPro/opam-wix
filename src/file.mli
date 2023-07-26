@@ -19,19 +19,19 @@ module Conf: sig
 
   (** Images files *)
   type images = {
-    ico: filename option;
-    dlg: filename option;
-    ban: filename option
+    ico: string option;
+    dlg: string option;
+    ban: string option
   }
 
   (** Content of config file *)
   type t = {
     c_version: OpamVersion.t; (* Config file version *)
     c_images: images; (* Images files that are treated not as other embedded files *)
-    c_binary_path: filename option; (* Path to binary to install *)
+    c_binary_path: string option; (* Path to binary to install *)
     c_binary: string option; (* Binary name to install *)
-    c_embbed_dir : (basename * dirname) list; (* Directories to embed in installation directory *)
-    c_embbed_file : filename list; (* Files to embed in installation directory *)
+    c_embbed_dir : (string * string) list; (* Directories to embed in installation directory *)
+    c_embbed_file : string list; (* Files to embed in installation directory *)
     c_envvar: (string * string) list; (* Environement variables to set in Windows Terminal on installation *)
   }
 

@@ -17,14 +17,14 @@ let conf_default = OpamFilename.of_string "opam-wix.conf"
 module Syntax = struct
   let internal = "conf"
   let format_version = OpamVersion.of_string "0.1"
-  type images = { ico: filename option; dlg: filename option; ban: filename option }
+  type images = { ico: string option; dlg: string option; ban: string option }
   type t = {
     c_version: OpamVersion.t;
     c_images: images;
-    c_binary_path: filename option;
+    c_binary_path: string option;
     c_binary: string option;
-    c_embbed_dir : (basename * dirname) list;
-    c_embbed_file : filename list;
+    c_embbed_dir : (string * string) list;
+    c_embbed_file : string list;
     c_envvar: (string * string) list;
   }
 
@@ -49,32 +49,29 @@ module Syntax = struct
     "ico", OpamPp.ppacc_opt
       (fun ico t -> { t with c_images = { t.c_images with ico = Some ico } })
       (fun t -> t.c_images.ico)
-      (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
+      OpamFormat.V.string;
     "bng", OpamPp.ppacc_opt
       (fun dlg t -> { t with c_images = { t.c_images with dlg = Some dlg } })
       (fun t -> t.c_images.dlg)
-      (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
+      OpamFormat.V.string;
     "ban", OpamPp.ppacc_opt
       (fun ban t -> { t with c_images = { t.c_images with ban = Some ban } })
       (fun t -> t.c_images.ban)
-      (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
+      OpamFormat.V.string;
     "binary-path", OpamPp.ppacc_opt
       (fun bp t -> { t with c_binary_path = Some bp})
       (fun t -> t.c_binary_path)
-      (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename));
+      OpamFormat.V.string;
     "binary", OpamPp.ppacc_opt
       (fun binary t -> { t with c_binary = Some binary }) (fun t -> t.c_binary)
-      (OpamFormat.V.string);
+      OpamFormat.V.string;
     "embbed-file", OpamPp.ppacc
       (fun file t -> { t with c_embbed_file = file }) (fun t -> t.c_embbed_file)
-      (OpamFormat.V.map_list ~depth:1
-         (OpamFormat.V.string -| OpamPp.of_module "filename" (module OpamFilename)));
+      (OpamFormat.V.map_list ~depth:1 OpamFormat.V.string);
     "embbed-dir", OpamPp.ppacc
       (fun dir t -> { t with c_embbed_dir = dir }) (fun t -> t.c_embbed_dir)
       (OpamFormat.V.map_list ~depth:2
-        (OpamFormat.V.map_pair
-         (OpamFormat.V.string -| OpamPp.of_module "basename" (module OpamFilename.Base))
-         (OpamFormat.V.string -| OpamPp.of_module "dirname" (module OpamFilename.Dir))));
+        (OpamFormat.V.map_pair OpamFormat.V.string OpamFormat.V.string));
     "envvar", OpamPp.ppacc
       (fun c_envvar t -> { t with c_envvar }) (fun t -> t.c_envvar)
       (OpamFormat.V.map_list ~depth:2
