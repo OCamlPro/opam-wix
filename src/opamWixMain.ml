@@ -60,7 +60,7 @@ module Args = struct
 
   let conffile =
     value & opt (some OpamArg.filename) None & info ["conf";"c"] ~docv:"PATH" ~docs:Section.bin_args
-    ~doc:"Configuration file for the binary to install"
+    ~doc:"Configuration file for the binary to install. See $(i,Configuration) section"
 
   let package =
     required & pos 0 (some OpamArg.package_name) None & info [] ~docv:"PACKAGE" ~docs:Section.package_arg
@@ -325,7 +325,28 @@ let create_bundle cli =
       "Additional files used by installer to customise GUI. Options $(b,--ico), $(b,--dlg-bmp) and \
       $(b,--ban-bmp) could be used to bundle custom files.");
     `P "Additionnaly, installer gives to user a possibility to create a shortcut on Desktop and Start \
-    menu as well as adding installation folder to the PATH."
+    menu as well as adding installation folder to the PATH.";
+    `S "Configuration";
+    `P "Despite arguments allowing partial configuration of the utility, for complete support of installing \
+    complex programs and non self-contained binaries, it is necessary to provide a config file with \
+    $(b,opam-format syntax) (See https://opam.ocaml.org/doc/Manual.html). Such a file allows opam-wix to \
+    determine which additional files and directories should be installed along with the program, as well \
+    as which environment variables need to be set in the Windows Terminal.";
+    `P "To specify paths to specific files, you can use variables defined by opam, for example, \
+    $(i,%{share}%/path), which adds the necessary prefix. For more information about variables, \
+    refer to https://opam.ocaml.org/doc/Manual.html#Variables. The config file can contain the following \
+    fields:";
+    `I ("$(i,opamwix-version)","The version of the config file. The current version is $(b,0.1).");
+    `I ("$(i,ico, bng, ban)","These are the same as their respective arguments.");
+    `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
+    `I ("$(i,embed-file)","A list of file paths to include in the installation directory.");
+    `I ("$(i,embed-dir)", "A list of directory paths to include in the installation directory. \
+     Each element in this list should be a list of two elements: the first being the destination \
+    basename (the name of the directory in the installation directory), and the second being the \
+    path to the directory itself. For example: $(i,[\"data\" \"path/to/data\"]).");
+    `I ("$(i,envvar)", "A list of environment variables to set/unset in the Windows Terminal during \
+    install/uninstall. Each element in this list should be a list of two elements: the name and the \
+    value of the variable.");
   ]
   in
   OpamArg.mk_command ~cli OpamArg.cli_original "opam-wix" ~doc ~man
