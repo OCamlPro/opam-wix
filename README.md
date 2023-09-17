@@ -132,6 +132,9 @@ OTHER OPTIONS
            The package GUID that will be used to update the same package with
            different version without processing throught Windows Apps &
            features panel
+
+       --conf=PATH
+           Configuration file for the binary to install.
 ```
 ### Config file
 
@@ -160,14 +163,12 @@ Configuration
        binary-path, binary
            These are the same as their respective arguments.
 
-       embed-file
-           A list of file paths to include in the installation directory.
-       embed-dir
-           A list of directory paths to include in the installation directory.
+       embbed
+           A list of files paths to include in the installation directory.
            Each element in this list should be a list of two elements: the
-           first being the destination basename (the name of the directory in
+           first being the destination basename (the name of the file in
            the installation directory), and the second being the path to the
-           directory itself. For example: ["data" "path/to/data"].
+           directory itself. For example: ["file.txt" "path/to/file"].
 
        envvar
            A list of environment variables to set/unset in the Windows

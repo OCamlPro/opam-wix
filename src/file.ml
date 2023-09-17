@@ -23,8 +23,7 @@ module Syntax = struct
     c_images: images;
     c_binary_path: string option;
     c_binary: string option;
-    c_embbed_dir : (string * string) list;
-    c_embbed_file : string list;
+    c_embbed : (string * string) list;
     c_envvar: (string * string) list;
   }
 
@@ -37,8 +36,7 @@ module Syntax = struct
     };
     c_binary_path = None;
     c_binary = None;
-    c_embbed_dir = [];
-    c_embbed_file = [];
+    c_embbed = [];
     c_envvar = [];
   }
 
@@ -65,11 +63,8 @@ module Syntax = struct
     "binary", OpamPp.ppacc_opt
       (fun binary t -> { t with c_binary = Some binary }) (fun t -> t.c_binary)
       OpamFormat.V.string;
-    "embbed-file", OpamPp.ppacc
-      (fun file t -> { t with c_embbed_file = file }) (fun t -> t.c_embbed_file)
-      (OpamFormat.V.map_list ~depth:1 OpamFormat.V.string);
-    "embbed-dir", OpamPp.ppacc
-      (fun dir t -> { t with c_embbed_dir = dir }) (fun t -> t.c_embbed_dir)
+    "embbed", OpamPp.ppacc
+      (fun file t -> { t with c_embbed = file }) (fun t -> t.c_embbed)
       (OpamFormat.V.map_list ~depth:2
         (OpamFormat.V.map_pair OpamFormat.V.string OpamFormat.V.string));
     "envvar", OpamPp.ppacc

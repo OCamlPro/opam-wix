@@ -284,13 +284,14 @@ let create_bundle cli =
       F.copy ~src ~dst;
       F.basename dst, dst
     in
-    let embedded_dirs = List.map (fun (name, dirname) ->
-      copy_embedded (module Dir_impl) dirname name)
-      conffile.File.Conf.c_embbed_dir
+    let embbed_dirs, embbed_files = List.partition (fun (_,path) ->
+      Sys.is_directory path) conffile.File.Conf.c_embbed
     in
-    let embedded_files = List.map (fun filename ->
-      copy_embedded (module File_impl) filename (Filename.basename filename)
-      |> fst) conffile.File.Conf.c_embbed_file
+    let embedded_dirs = List.map (fun (name, dirname) ->
+      copy_embedded (module Dir_impl) dirname name) embbed_dirs
+    in
+    let embedded_files = List.map (fun (name, filename) ->
+      copy_embedded (module File_impl) filename name) embbed_files
     in
     OpamConsole.formatted_msg "Bundle created.";
     OpamConsole.header_msg "WiX setup";
@@ -333,11 +334,44 @@ let create_bundle cli =
       let icon_file = data_basename conf.icon_file DataDir.Images.logo
       let dlg_bmp_file = data_basename conf.dlg_bmp DataDir.Images.dlgbmp
       let banner_bmp_file = data_basename conf.ban_bmp DataDir.Images.banbmp
-      let embedded_dirs = List.map (fun (base,_) ->
-        let base = OpamFilename.Base.to_string base in
-        base, component_group base, dir_ref base) embedded_dirs
-      let embedded_files = List.map OpamFilename.Base.to_string embedded_files
-      let environement = conffile.File.Conf.c_envvar
+      let environement =
+        let all_paths =
+          let paths =
+            List.fold_left (fun paths (base, _dirname) ->
+                let base = OpamFilename.Base.to_string base in
+                OpamStd.String.Map.add base ("[INSTALL_DIR]\\"^base)
+                  paths)
+              OpamStd.String.Map.empty embedded_dirs
+          in
+          List.fold_left (fun paths (base, _filename) ->
+                let base = OpamFilename.Base.to_string base in
+                OpamStd.String.Map.add base ("[INSTALL_DIR]\\"^base)
+                  paths)
+            paths embedded_files
+        in
+        let env var =
+          assert (OpamVariable.Full.scope var = OpamVariable.Full.Global);
+          let svar = OpamVariable.Full.to_string var in
+          match OpamStd.String.Map.find_opt svar all_paths with
+          | None -> None
+          | Some path -> Some (OpamVariable.string path)
+        in
+        List.map (fun (var,content) ->
+            let content =
+              OpamFilter.expand_string ~partial:false ~default:(fun x -> x)
+                env content
+            in
+            var, content)
+          conffile.File.Conf.c_envvar
+      let embedded_dirs =
+          List.map (fun (base,_) ->
+            let base = OpamFilename.Base.to_string base in
+            base, component_group base, dir_ref base)
+          embedded_dirs
+      let embedded_files =
+        List.map (fun (base,_) ->
+          OpamFilename.Base.to_string base)
+        embedded_files
     end in
     System.call_list @@ List.map (fun (basename, dirname) ->
       let basename = OpamFilename.Base.to_string basename in
@@ -355,7 +389,7 @@ let create_bundle cli =
       ) embedded_dirs;
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension (OpamFilename.Base.to_string exe_base) in
-    let (addwxs1,content1),(addwxs2,content2)  =
+    let (addwxs1,content1),(addwxs2,content2) =
       DataDir.Wix.custom_install_dir,
       DataDir.Wix.custom_install_dir_dlg
     in
@@ -367,11 +401,6 @@ let create_bundle cli =
     in
     let main_path = OpamFilename.Op.(tmp_dir // (name ^ ".wxs")) in
     Wix.write_wxs (OpamFilename.to_string main_path) wxs;
-
-
-    OpamFilename.copy_in main_path (OpamFilename.Dir.of_string ".");
-
-
     OpamConsole.formatted_msg "Compiling WiX components...\n";
     System.call_list @@ List.map (fun (basename, _) ->
       let basename = OpamFilename.Base.to_string basename in
@@ -474,11 +503,10 @@ let create_bundle cli =
     `I ("$(i,opamwix-version)","The version of the config file. The current version is $(b,0.1).");
     `I ("$(i,ico, bng, ban)","These are the same as their respective arguments.");
     `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
-    `I ("$(i,embed-file)","A list of file paths to include in the installation directory.");
-    `I ("$(i,embed-dir)", "A list of directory paths to include in the installation directory. \
+    `I ("$(i,embbed)", "A list of files paths to include in the installation directory. \
      Each element in this list should be a list of two elements: the first being the destination \
-    basename (the name of the directory in the installation directory), and the second being the \
-    path to the directory itself. For example: $(i,[\"data\" \"path/to/data\"]).");
+    basename (the name of the file in the installation directory), and the second being the \
+    path to the directory itself. For example: $(i,[\"file.txt\" \"path/to/file\"]).");
     `I ("$(i,envvar)", "A list of environment variables to set/unset in the Windows Terminal during \
     install/uninstall. Each element in this list should be a list of two elements: the name and the \
     value of the variable.");
