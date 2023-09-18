@@ -12,9 +12,14 @@ type uuid_mode =
   | Rand
   | Exec of string * string * string option
 
+type candle_files =
+  | One of string * string
+  | Many of string list
+
 type candle = {
   candle_wix_path : string;
-  candle_files : string list;
+  candle_files : candle_files;
+  candle_defines : string list;
 }
 
 type light = {
@@ -22,6 +27,15 @@ type light = {
   light_files : string list;
   light_exts : string list;
   light_out : string
+}
+
+type heat = {
+  heat_wix_path : string;
+  heat_dir : string;
+  heat_out : string;
+  heat_component_group : string;
+  heat_directory_ref : string;
+  heat_var : string
 }
 
 type cygpath_out = [ `Win | `WinAbs | `Cyg | `CygAbs ]
@@ -33,6 +47,7 @@ type _ command =
   | Uuidgen : uuid_mode command
   | Candle : candle command
   | Light : light command
+  | Heat : heat command
 
 exception System_error of string
 
@@ -56,21 +71,42 @@ let call_inner : type a. a command -> a -> string * string list =
     "uuidgen", ["--md5"; "--namespace"; "@dns"; "--name";
       Format.sprintf "opam.%s.%s%s" p e
         (if v = None then "" else "."^ Option.get v)]
-  | Candle, {candle_wix_path; candle_files} ->
+  | Candle, {candle_wix_path; candle_files; candle_defines} ->
+    let files =
+      match candle_files with
+      | One (file,out) -> ["-o"; out; file ]
+      | Many files -> files
+    in
     let candle = Filename.concat candle_wix_path "candle.exe" in
-    candle, candle_files
-  | Light, {light_wix_path;light_files;light_exts;light_out} ->
+    let defines = List.map (fun d -> "-d"^d) candle_defines in
+    candle, defines @ files
+  | Light, {light_wix_path; light_files; light_exts; light_out} ->
     let light = Filename.concat light_wix_path "light.exe" in
     let args =
       List.flatten (List.map (fun e -> ["-ext"; e]) light_exts)
       @ light_files @ ["-o"; light_out]
     in
     light, args
-
+  | Heat, {
+      heat_wix_path;
+      heat_dir;
+      heat_out;
+      heat_component_group;
+      heat_directory_ref;
+      heat_var
+    } ->
+    let heat = Filename.concat heat_wix_path "heat.exe" in
+    let args =
+      [ "dir"; heat_dir; "-o"; heat_out;
+        "-scom"; "-frag"; "-srd"; "-sreg"; "-gg";
+        "-cg"; heat_component_group;
+        "-dr"; heat_directory_ref ;
+        "-var"; heat_var]
+    in
+    heat, args
 
 let gen_command_tmp_dir cmd =
   Printf.sprintf "%s-%06x" (Filename.basename cmd) (Random.int 0xFFFFFF)
-
 
 let call : type a. a command -> a -> string list =
   fun command arguments ->
@@ -113,6 +149,7 @@ let check_avalable_commands wix_path =
     Which, "uuidgen";
     Which, Filename.concat wix_path "candle.exe";
     Which, Filename.concat wix_path "light.exe";
+    Which, Filename.concat wix_path "heat.exe";
   ]
 
 (* let windows_from_cygwin_path cygwin_disk path =

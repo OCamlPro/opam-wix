@@ -109,6 +109,73 @@ module Args = struct
 
 end
 
+module type FILE_INTF = sig
+  type t
+  val name : string
+  val to_string : t -> string
+  val of_string : string -> t
+  val (/) : dirname -> string -> t
+  val copy : src:t -> dst:t -> unit
+  val exists : t -> bool
+  val basename : t -> basename
+end
+
+module Dir_impl : FILE_INTF
+  with type t = OpamFilename.Dir.t = struct
+  include OpamFilename.Dir
+  let name = "directory"
+  let (/) = OpamFilename.Op.(/)
+  let copy = OpamFilename.copy_dir
+  let exists = OpamFilename.exists_dir
+  let basename = OpamFilename.basename_dir
+end
+
+module File_impl : FILE_INTF
+  with type t = OpamFilename.t = struct
+  include OpamFilename
+  let name = "file"
+  let (/) = OpamFilename.Op.(//)
+  let copy = OpamFilename.copy
+  let exists = OpamFilename.exists
+  let basename = OpamFilename.basename
+end
+
+let resolve_path_aux env path =
+  let expanded_path = OpamFilter.expand_string env path in
+  if not @@ Filename.is_relative expanded_path
+  then expanded_path
+  else begin
+    OpamConsole.warning
+      "Specified in config path %s is relative. Searching in current directory..."
+        (OpamConsole.colorise `bold path);
+    Filename.concat (Sys.getcwd ()) expanded_path
+  end
+
+let resolve_path (type a) env
+  (module F : FILE_INTF with type t = a) path =
+  F.of_string @@ resolve_path_aux env path
+
+let normalize_conf env conf file =
+  let open File.Conf in
+  (* argument has precedence over config *)
+  let merge_opt first second =
+    match first with
+    | None -> second
+    | _ -> first
+  in
+  {
+    conf with
+    binary = merge_opt conf.binary file.c_binary;
+    path = merge_opt conf.path
+      (Option.map (resolve_path env (module File_impl)) file.c_binary_path);
+    icon_file = merge_opt conf.icon_file
+      (Option.map (resolve_path env (module File_impl)) file.c_images.ico);
+    dlg_bmp = merge_opt conf.dlg_bmp
+      (Option.map (resolve_path env (module File_impl)) file.c_images.dlg);
+    ban_bmp = merge_opt conf.ban_bmp
+      (Option.map (resolve_path env (module File_impl)) file.c_images.ban);
+  }
+
 let create_bundle cli =
   let create_bundle global_options conf () =
     let conffile =
@@ -120,6 +187,8 @@ let create_bundle cli =
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->
     OpamSwitchState.with_ `Lock_read gt @@ fun st ->
+    let env = OpamPackageVar.resolve ?opam:None ?local:None st in
+    let conf = normalize_conf env conf conffile in
     let package =
       try OpamSwitchState.find_installed_package_by_name st conf.package
       with Not_found -> OpamConsole.error_and_exit `Not_found
@@ -128,16 +197,17 @@ let create_bundle cli =
       (OpamConsole.colorise `bold ("opam install " ^ (OpamPackage.Name.to_string conf.package)))
     in
     let opam = OpamSwitchState.opam st package in
-    let bin_path = OpamPath.Switch.bin gt.root st.switch st.switch_config
-    in
-    let binaries =
+    let bin_path = OpamPath.Switch.bin gt.root st.switch st.switch_config in
+    let changes =
       OpamPath.Switch.changes gt.root st.switch conf.package
       |> OpamFile.Changes.safe_read
       |> OpamStd.String.Map.keys
-      |> List.filter_map (fun name ->
-          let bin = OpamStd.String.remove_prefix ~prefix:"bin/" name in
-          if String.equal bin name then None
-          else Some bin)
+    in
+    let binaries =
+      List.filter_map (fun name ->
+        let bin = OpamStd.String.remove_prefix ~prefix:"bin/" name in
+        if String.equal bin name then None
+        else Some bin) changes
     in
     OpamConsole.formatted_msg "Package %s found with binaries:\n%s"
       (OpamConsole.colorise `bold (OpamPackage.to_string package))
@@ -151,19 +221,22 @@ let create_bundle cli =
         if OpamFilename.exists path then
           if not (OpamFilename.is_exec path) then
             OpamConsole.error_and_exit `Bad_arguments
-              "File %s is not executable" (OpamFilename.to_string path)
+              "File %s is not executable" (OpamConsole.colorise
+              `bold (OpamFilename.to_string path))
           else begin
             path
           end
         else
           OpamConsole.error_and_exit `Not_found
-            "File not found at %s" (OpamFilename.to_string path)
+            "File not found at %s" (OpamConsole.colorise
+            `bold (OpamFilename.to_string path))
       | None, Some binary ->
         if List.exists (String.equal binary) binaries then
           OpamFilename.Op.(bin_path // binary)
         else
           OpamConsole.error_and_exit `Not_found
-            "Binary %s not found in opam installation" binary
+            "Binary %s not found in opam installation"
+            (OpamConsole.colorise `bold binary)
       | None, None ->
         match binaries with
         | [bin] ->
@@ -171,7 +244,7 @@ let create_bundle cli =
         | [] ->
           OpamConsole.error_and_exit `Not_found
             "No binary file found at package installation %s"
-            (OpamPackage.to_string package)
+            (OpamConsole.colorise `bold (OpamPackage.to_string package))
         | _::_ ->
           OpamConsole.error_and_exit `False
             "opam-wix don't handle yet several binaries, \
@@ -203,7 +276,29 @@ let create_bundle cli =
     copy_data conf.icon_file DataDir.Images.logo;
     copy_data conf.dlg_bmp DataDir.Images.dlgbmp;
     copy_data conf.ban_bmp DataDir.Images.banbmp;
+    (* search and copy embedded elements *)
+    let copy_embedded (type a) (module F : FILE_INTF with type t = a) path dst_base =
+      let src = resolve_path env (module F) path in
+      if not @@ F.exists src
+      then OpamConsole.error_and_exit `Not_found
+            "Couldn't find %s %s." (OpamConsole.colorise
+            `bold (F.to_string src)) F.name;
+      let dst = F.(bundle_dir / dst_base) in
+      F.copy ~src ~dst;
+      F.basename dst, dst
+    in
+    let embbed_dirs, embbed_files = List.partition (fun (_,path) ->
+      let path = resolve_path_aux env path in
+      Sys.is_directory path) conffile.File.Conf.c_embbed
+    in
+    let embedded_dirs = List.map (fun (name, dirname) ->
+      copy_embedded (module Dir_impl) dirname name) embbed_dirs
+    in
+    let embedded_files = List.map (fun (name, filename) ->
+      copy_embedded (module File_impl) filename name) embbed_files
+    in
     OpamConsole.formatted_msg "Bundle created.";
+    OpamConsole.header_msg "WiX setup";
     let data_basename data (name,_) =
       match data with
       | Some data ->
@@ -211,6 +306,13 @@ let create_bundle cli =
         |> OpamFilename.Base.to_string
       | None -> name
     in
+    let component_group basename =
+      String.mapi
+        (fun i c -> if i = 0 then Char.uppercase_ascii c else c)
+        basename
+      ^ "CG"
+    in
+    let dir_ref basename = basename ^ "_REF" in
     let module Info = struct
       open OpamStd.Option.Op
       let path =
@@ -236,11 +338,62 @@ let create_bundle cli =
       let icon_file = data_basename conf.icon_file DataDir.Images.logo
       let dlg_bmp_file = data_basename conf.dlg_bmp DataDir.Images.dlgbmp
       let banner_bmp_file = data_basename conf.ban_bmp DataDir.Images.banbmp
+      let environement =
+        let all_paths =
+          let paths =
+            List.fold_left (fun paths (base, _dirname) ->
+                let base = OpamFilename.Base.to_string base in
+                OpamStd.String.Map.add base ("[INSTALLDIR]"^base)
+                  paths)
+              OpamStd.String.Map.empty embedded_dirs
+          in
+          List.fold_left (fun paths (base, _filename) ->
+                let base = OpamFilename.Base.to_string base in
+                OpamStd.String.Map.add base ("[INSTALLDIR]"^base)
+                  paths)
+            paths embedded_files
+        in
+        let env var =
+          assert (OpamVariable.Full.scope var = OpamVariable.Full.Global);
+          let svar = OpamVariable.Full.to_string var in
+          match OpamStd.String.Map.find_opt svar all_paths with
+          | None -> None
+          | Some path -> Some (OpamVariable.string path)
+        in
+        List.map (fun (var,content) ->
+            let content =
+              OpamFilter.expand_string ~partial:false ~default:(fun x -> x)
+                env content
+            in
+            var, content)
+          conffile.File.Conf.c_envvar
+      let embedded_dirs =
+          List.map (fun (base,_) ->
+            let base = OpamFilename.Base.to_string base in
+            base, component_group base, dir_ref base)
+          embedded_dirs
+      let embedded_files =
+        List.map (fun (base,_) ->
+          OpamFilename.Base.to_string base)
+        embedded_files
     end in
-    OpamConsole.header_msg "WiX setup";
+    System.call_list @@ List.map (fun (basename, dirname) ->
+      let basename = OpamFilename.Base.to_string basename in
+      let heat = System.{
+        heat_wix_path = OpamFilename.Dir.to_string conf.wix_path;
+        heat_dir = OpamFilename.Dir.to_string dirname
+          |> System.cyg_win_path `WinAbs;
+        heat_out = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename ^ ".wxs"
+          |> System.cyg_win_path `WinAbs;
+        heat_component_group = component_group basename;
+        heat_directory_ref = dir_ref basename;
+        heat_var = Format.sprintf "var.%sDir" basename
+      } in
+      System.Heat, heat
+      ) embedded_dirs;
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension (OpamFilename.Base.to_string exe_base) in
-    let (addwxs1,content1),(addwxs2,content2)  =
+    let (addwxs1,content1),(addwxs2,content2) =
       DataDir.Wix.custom_install_dir,
       DataDir.Wix.custom_install_dir_dlg
     in
@@ -253,19 +406,30 @@ let create_bundle cli =
     let main_path = OpamFilename.Op.(tmp_dir // (name ^ ".wxs")) in
     Wix.write_wxs (OpamFilename.to_string main_path) wxs;
     OpamConsole.formatted_msg "Compiling WiX components...\n";
+    System.call_list @@ List.map (fun (basename, _) ->
+      let basename = OpamFilename.Base.to_string basename in
+      let candle_defines = [ Format.sprintf "%sDir=%s\\%s"
+        basename (OpamPackage.to_string package) basename ]
+      in
+      let prefix = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename in
+      let candle = System.{
+        candle_wix_path = OpamFilename.Dir.to_string conf.wix_path;
+        candle_files = One (prefix ^ ".wxs" |> cyg_win_path `WinAbs,
+          prefix ^ ".wixobj" |> cyg_win_path `WinAbs);
+        candle_defines
+      } in
+      System.Candle, candle
+      ) embedded_dirs;
     let wxs_files =
       (OpamFilename.to_string main_path |> System.cyg_win_path `WinAbs)
-      :: additional_wxs
+        :: additional_wxs
     in
     let candle = System.{
       candle_wix_path = OpamFilename.Dir.to_string conf.wix_path;
-      candle_files = wxs_files
-    }
-    in
+      candle_files = Many wxs_files;
+      candle_defines = []
+    } in
     System.call_unit System.Candle candle;
-    OpamFilename.remove (OpamFilename.of_string (name ^ ".wxs"));
-    OpamFilename.remove (OpamFilename.of_string addwxs1);
-    OpamFilename.remove (OpamFilename.of_string addwxs2);
     let main_obj = name ^ ".wixobj" in
     let addwxs1_obj = Filename.chop_extension addwxs1 ^ ".wixobj" in
     let addwxs2_obj = Filename.chop_extension addwxs2 ^ ".wixobj" in
@@ -281,8 +445,12 @@ let create_bundle cli =
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs1_obj
         |> System.cyg_win_path `WinAbs;
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs2_obj
-        |> System.cyg_win_path `WinAbs
-    ]
+        |> System.cyg_win_path `WinAbs;
+    ] @
+    List.map (fun (base,_) ->
+      Filename.concat (OpamFilename.Dir.to_string tmp_dir)
+        (OpamFilename.Base.to_string base) ^ ".wixobj"
+      |> System.cyg_win_path `WinAbs ) embedded_dirs
     in
     let light = System.{
       light_wix_path = OpamFilename.Dir.to_string conf.wix_path;
@@ -339,14 +507,16 @@ let create_bundle cli =
     `I ("$(i,opamwix-version)","The version of the config file. The current version is $(b,0.1).");
     `I ("$(i,ico, bng, ban)","These are the same as their respective arguments.");
     `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
-    `I ("$(i,embed-file)","A list of file paths to include in the installation directory.");
-    `I ("$(i,embed-dir)", "A list of directory paths to include in the installation directory. \
-     Each element in this list should be a list of two elements: the first being the destination \
-    basename (the name of the directory in the installation directory), and the second being the \
-    path to the directory itself. For example: $(i,[\"data\" \"path/to/data\"]).");
+    `I ("$(i,embbed)", "A list of files or directories paths to include in the installation directory. \
+    Each element in this list should be a list of two elements: the first being the destination \
+    basename (the name of the file in the installation directory), and the second being the \
+    path to the directory itself. For example: $(i,[\"file.txt\" \"path/to/file\"]).");
     `I ("$(i,envvar)", "A list of environment variables to set/unset in the Windows Terminal during \
     install/uninstall. Each element in this list should be a list of two elements: the name and the \
-    value of the variable.");
+    value of the variable. Basenames defined with $(b,embbed) field could be used as variables, to reference \
+    absolute installed path. For example: $(b,embbed: [ \"mydoc\" \"%{package:doc}%\"] envvar: [ \"DOC\" \"%{mydoc}%\"]) \
+    will install directory referenced by $(i,package:doc) opam variable in $(i,<install-dir>/mydoc) \
+    and set $(i,DOC) environment variable to the $(i,<install-dir>/mydoc) absolute path.");
   ]
   in
   OpamArg.mk_command ~cli OpamArg.cli_original "opam-wix" ~doc ~man
