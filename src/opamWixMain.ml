@@ -140,17 +140,20 @@ module File_impl : FILE_INTF
   let basename = OpamFilename.basename
 end
 
-let resolve_path (type a) env
-  (module F : FILE_INTF with type t = a) path =
+let resolve_path_aux env path =
   let expanded_path = OpamFilter.expand_string env path in
   if not @@ Filename.is_relative expanded_path
-  then F.of_string expanded_path
+  then expanded_path
   else begin
     OpamConsole.warning
       "Specified in config path %s is relative. Searching in current directory..."
         (OpamConsole.colorise `bold path);
-    F.(OpamFilename.cwd () / expanded_path)
+    Filename.concat (Sys.getcwd ()) expanded_path
   end
+
+let resolve_path (type a) env
+  (module F : FILE_INTF with type t = a) path =
+  F.of_string @@ resolve_path_aux env path
 
 let normalize_conf env conf file =
   let open File.Conf in
@@ -285,6 +288,7 @@ let create_bundle cli =
       F.basename dst, dst
     in
     let embbed_dirs, embbed_files = List.partition (fun (_,path) ->
+      let path = resolve_path_aux env path in
       Sys.is_directory path) conffile.File.Conf.c_embbed
     in
     let embedded_dirs = List.map (fun (name, dirname) ->
@@ -339,13 +343,13 @@ let create_bundle cli =
           let paths =
             List.fold_left (fun paths (base, _dirname) ->
                 let base = OpamFilename.Base.to_string base in
-                OpamStd.String.Map.add base ("[INSTALL_DIR]\\"^base)
+                OpamStd.String.Map.add base ("[INSTALLDIR]"^base)
                   paths)
               OpamStd.String.Map.empty embedded_dirs
           in
           List.fold_left (fun paths (base, _filename) ->
                 let base = OpamFilename.Base.to_string base in
-                OpamStd.String.Map.add base ("[INSTALL_DIR]\\"^base)
+                OpamStd.String.Map.add base ("[INSTALLDIR]"^base)
                   paths)
             paths embedded_files
         in
@@ -503,13 +507,16 @@ let create_bundle cli =
     `I ("$(i,opamwix-version)","The version of the config file. The current version is $(b,0.1).");
     `I ("$(i,ico, bng, ban)","These are the same as their respective arguments.");
     `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
-    `I ("$(i,embbed)", "A list of files paths to include in the installation directory. \
-     Each element in this list should be a list of two elements: the first being the destination \
+    `I ("$(i,embbed)", "A list of files or directories paths to include in the installation directory. \
+    Each element in this list should be a list of two elements: the first being the destination \
     basename (the name of the file in the installation directory), and the second being the \
     path to the directory itself. For example: $(i,[\"file.txt\" \"path/to/file\"]).");
     `I ("$(i,envvar)", "A list of environment variables to set/unset in the Windows Terminal during \
     install/uninstall. Each element in this list should be a list of two elements: the name and the \
-    value of the variable.");
+    value of the variable. Basenames defined with $(b,embbed) field could be used as variables, to reference \
+    absolute installed path. For example: $(b,embbed: [ \"mydoc\" \"%{package:doc}%\"] envvar: [ \"DOC\" \"%{mydoc}%\"]) \
+    will install directory referenced by $(i,package:doc) opam variable in $(i,<install-dir>/mydoc) \
+    and set $(i,DOC) environment variable to the $(i,<install-dir>/mydoc) absolute path.");
   ]
   in
   OpamArg.mk_command ~cli OpamArg.cli_original "opam-wix" ~doc ~man

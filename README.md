@@ -174,6 +174,13 @@ Configuration
            A list of environment variables to set/unset in the Windows
            Terminal during install/uninstall. Each element in this list should
            be a list of two elements: the name and the value of the variable.
+           Basenames defined with embbed field could be used as variables, to
+           reference absolute installed path. For example:
+           embbed: [ "mydoc" "%{package:doc}%"]
+           envvar: [ "DOC" "%{mydoc}%"]
+           will install directory referenced by package:doc opam variable in
+           <install-dir>/mydoc and set DOC environment variable to the
+           <install-dir>/mydoc absolute path
 ```
 
 ### Config file example
