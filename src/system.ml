@@ -152,18 +152,8 @@ let check_avalable_commands wix_path =
     Which, Filename.concat wix_path "heat.exe";
   ]
 
-(* let windows_from_cygwin_path cygwin_disk path =
-  match String.split_on_char '/' (String.trim path) with
-  | ""::"cygdrive" :: disk :: rest ->
-    let disk = String.uppercase_ascii disk ^ ":" in
-    String.concat "\\" (disk::rest)
-  | ""::rest ->
-    String.concat "\\" (cygwin_disk :: "cygwin64" :: rest)
-  | local ->
-    let cwd = OpamFilename.cwd () in
-    let path = Filename.concat (OpamFilename.Dir.to_string cwd) (String.concat "/" local) in
-    (match String.split_on_char '/' path with
-    | ""::rest | rest -> String.concat "\\" (cygwin_disk :: "cygwin64" :: rest))
-
- *)
-let cyg_win_path out path = call Cygpath (out,path) |> List.hd |> String.trim
+let cyg_win_path out path =
+  match call Cygpath (out,path) with
+  | line :: _ -> String.trim line
+  | _ -> raise @@ System_error "cygpath raised an error. \
+  You probably choosed a file with invalid format as your binary."

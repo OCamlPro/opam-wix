@@ -16,21 +16,16 @@ let filter_system32 path =
   | _ -> true
 
 let get_dlls path =
-  let check_consistency result =
-    (* if cygchecks produces less then 3 lines, it signifies an error *)
-    if List.length result > 2
-    then result
-    else raise @@
-      System.System_error "cygcheck raised an error. You probably choosed a file \
-      with invalid format as your binary."
-  in
-  let dlls =
-    System.(call Cygcheck (OpamFilename.to_string path))
-    |> check_consistency
-  in
-  List.tl dlls |>
-  List.filter_map (fun dll ->
-    let dll = String.trim dll in
-    if filter_system32 dll
-    then Some System.(cyg_win_path `CygAbs dll |> OpamFilename.of_string)
-    else None)
+  let path = OpamFilename.to_string path in
+  match System.(call Cygcheck path) |> List.filter (fun s ->
+    not @@ String.equal s "") with
+  | [line] when OpamStd.String.contains ~sub:path line -> []
+  | line::dlls when OpamStd.String.contains ~sub:path line ->
+    List.filter_map (fun dll ->
+      let dll = String.trim dll in
+      if filter_system32 dll
+      then Some System.(cyg_win_path `CygAbs dll |> OpamFilename.of_string)
+      else None) dlls
+  | _ -> raise @@
+  System.System_error "cygcheck raised an error. You probably choosed a file \
+  with invalid format as your binary."

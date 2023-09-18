@@ -18,7 +18,7 @@ type config = {
   path : filename option;
   binary: string option;
   output_dir : dirname;
-  wix_path : dirname;
+  wix_path : string;
   package_guid: string option;
   icon_file : filename option;
   dlg_bmp : filename option;
@@ -79,9 +79,10 @@ module Args = struct
     "The output directory where bundle will be stored"
 
   let wix_path =
-    value & opt OpamArg.dirname (OpamFilename.Dir.of_string "/cygdrive/c/Program Files (x86)/WiX Toolset v3.11/bin")
+    value & opt string "/cygdrive/c/Program Files (x86)/WiX Toolset v3.11/bin"
     & info ["wix-path"] ~docv:"DIR" ~doc:
-    "The path where WIX tools are stored. The path should be full."
+    "The path where WIX tools are stored. The path should be full and should use linux format path (with ($i,/) as delimiter) \
+    since presence of such binaries are checked with ($b,which) tool that accepts only this type of path."
 
   let package_guid =
     value & opt (some string) None & info ["pkg-guid"] ~docv:"UID" ~doc:
@@ -182,7 +183,7 @@ let create_bundle cli =
       let file = OpamStd.Option.default File.conf_default conf.conf in
       File.Conf.safe_read (OpamFile.make file)
     in
-    System.check_avalable_commands (OpamFilename.Dir.to_string conf.wix_path);
+    System.check_avalable_commands conf.wix_path;
     OpamConsole.header_msg "Initialising opam";
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->
@@ -205,7 +206,14 @@ let create_bundle cli =
     in
     let binaries =
       List.filter_map (fun name ->
-        let bin = OpamStd.String.remove_prefix ~prefix:"bin/" name in
+        let prefix, suffix =
+          if Sys.cygwin
+          then "bin/","" else "bin\\",".exe"
+        in
+        let bin =
+          OpamStd.String.remove_prefix ~prefix name
+          |> OpamStd.String.remove_suffix ~suffix
+        in
         if String.equal bin name then None
         else Some bin) changes
     in
@@ -232,6 +240,7 @@ let create_bundle cli =
             `bold (OpamFilename.to_string path))
       | None, Some binary ->
         if List.exists (String.equal binary) binaries then
+          let binary = if Sys.cygwin then binary else binary ^ ".exe" in
           OpamFilename.Op.(bin_path // binary)
         else
           OpamConsole.error_and_exit `Not_found
@@ -240,6 +249,7 @@ let create_bundle cli =
       | None, None ->
         match binaries with
         | [bin] ->
+          let bin = if Sys.cygwin then bin else bin ^ ".exe" in
           OpamFilename.Op.(bin_path // bin)
         | [] ->
           OpamConsole.error_and_exit `Not_found
@@ -377,10 +387,14 @@ let create_bundle cli =
           OpamFilename.Base.to_string base)
         embedded_files
     end in
+    let wix_path = if Sys.cygwin
+      then conf.wix_path
+      else System.cyg_win_path `WinAbs conf.wix_path
+    in
     System.call_list @@ List.map (fun (basename, dirname) ->
       let basename = OpamFilename.Base.to_string basename in
       let heat = System.{
-        heat_wix_path = OpamFilename.Dir.to_string conf.wix_path;
+        heat_wix_path = wix_path;
         heat_dir = OpamFilename.Dir.to_string dirname
           |> System.cyg_win_path `WinAbs;
         heat_out = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename ^ ".wxs"
@@ -413,7 +427,7 @@ let create_bundle cli =
       in
       let prefix = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename in
       let candle = System.{
-        candle_wix_path = OpamFilename.Dir.to_string conf.wix_path;
+        candle_wix_path = wix_path;
         candle_files = One (prefix ^ ".wxs" |> cyg_win_path `WinAbs,
           prefix ^ ".wixobj" |> cyg_win_path `WinAbs);
         candle_defines
@@ -425,7 +439,7 @@ let create_bundle cli =
         :: additional_wxs
     in
     let candle = System.{
-      candle_wix_path = OpamFilename.Dir.to_string conf.wix_path;
+      candle_wix_path = wix_path;
       candle_files = Many wxs_files;
       candle_defines = []
     } in
@@ -453,7 +467,7 @@ let create_bundle cli =
       |> System.cyg_win_path `WinAbs ) embedded_dirs
     in
     let light = System.{
-      light_wix_path = OpamFilename.Dir.to_string conf.wix_path;
+      light_wix_path = wix_path;
       light_files = wixobj_files;
       light_exts = ["WixUIExtension"; "WixUtilExtension"];
       light_out = (name ^ ".msi")
@@ -486,7 +500,7 @@ let create_bundle cli =
       "The selected executable file from package 'PACK'. There are two options how to indicate \
       where to find this binary. First, is to let opam find binary with the same name for you with \
       $(b,-b) option. Second, is to use the path to binary with $(b,--bp) option. In this case binary \
-      will be considered as a part of package and its metadata.");
+      will be considered as a part of package and its metadata. ");
     `I ("$(i,*.dll)",
       "All executable's dependencies libriries found with $(b,cygcheck).");
     `I ("$(i,icon and *.bmp)",
