@@ -42,6 +42,8 @@ opam pin https://github.com/OCamlPro/opam-wix.git
 
 ## Usage
 
+> If you are using the MinGW compiler, please specify Windows paths with the backslash ('\') delimiter everywhere, except for the path to Wix, which should be in the form `/cygdrive/...`."  
+
 To generate MSI file for the executable installed by `pkg` run:
 
 ```bash
