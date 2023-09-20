@@ -171,6 +171,8 @@ Configuration
            first being the destination basename (the name of the file in
            the installation directory), and the second being the path to the
            directory itself. For example: ["file.txt" "path/to/file"].
+           Relative paths are resolved by searching files in current
+           directory.
 
        envvar
            A list of environment variables to set/unset in the Windows
@@ -189,20 +191,19 @@ Configuration
 
 ```
 opamwix-version : "0.1"
-embbed-file : [
-    "%{bin}%/dune"
-    "%{lib}%/opam-core/opamACL.ml"
-    "dune-project"
+embbed : [
+    [ "dune" "%{bin}%/dune"]
+    [ "opamACL.ml" "%{lib}%/opam-core/opamACL.ml"]
+    [ "dune-project" "./dune-project"]
+    [ "share" "%{share}%/dune"]
+    [ "data" "./data"]
 ]
-embbed-dir: [
-    ["share" "%{share}%/dune"]
-    ["data" "./data"]
+envvar : [
+    [ "FOO_VAR" "foo"]
+    [ "OPAM_ACL_PATH" "%{opamACL.ml}%"]
+    [ "FOO_SHARE" "%{share}%"]
 ]
-envvar: [
-    ["VAR1" "toto"]
-    ["VAR2" "titi"]
-    ["VAR2" "tata"]
-]
+
 ```
 
 
