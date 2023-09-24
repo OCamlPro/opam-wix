@@ -297,15 +297,15 @@ let create_bundle cli =
       F.copy ~src ~dst;
       F.basename dst, dst
     in
-    let embbed_dirs, embbed_files = List.partition (fun (_,path) ->
+    let emb_dirs, emb_files = List.partition (fun (_,path) ->
       let path = resolve_path_aux env path in
-      Sys.is_directory path) conffile.File.Conf.c_embbed
+      Sys.is_directory path) conffile.File.Conf.c_embedded
     in
     let embedded_dirs = List.map (fun (name, dirname) ->
-      copy_embedded (module Dir_impl) dirname name) embbed_dirs
+      copy_embedded (module Dir_impl) dirname name) emb_dirs
     in
     let embedded_files = List.map (fun (name, filename) ->
-      copy_embedded (module File_impl) filename name) embbed_files
+      copy_embedded (module File_impl) filename name) emb_files
     in
     OpamConsole.formatted_msg "Bundle created.";
     OpamConsole.header_msg "WiX setup";
@@ -521,14 +521,14 @@ let create_bundle cli =
     `I ("$(i,opamwix-version)","The version of the config file. The current version is $(b,0.1).");
     `I ("$(i,ico, bng, ban)","These are the same as their respective arguments.");
     `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
-    `I ("$(i,embbed)", "A list of files or directories paths to include in the installation directory. \
+    `I ("$(i,embedded)", "A list of files or directories paths to include in the installation directory. \
     Each element in this list should be a list of two elements: the first being the destination \
     basename (the name of the file in the installation directory), and the second being the \
     path to the directory itself. For example: $(i,[\"file.txt\" \"path/to/file\"]).");
     `I ("$(i,envvar)", "A list of environment variables to set/unset in the Windows Terminal during \
     install/uninstall. Each element in this list should be a list of two elements: the name and the \
-    value of the variable. Basenames defined with $(b,embbed) field could be used as variables, to reference \
-    absolute installed path. For example: $(b,embbed: [ \"mydoc\" \"%{package:doc}%\"] envvar: [ \"DOC\" \"%{mydoc}%\"]) \
+    value of the variable. Basenames defined with $(b,embedded) field could be used as variables, to reference \
+    absolute installed path. For example: $(b,embedded: [ \"mydoc\" \"%{package:doc}%\"] envvar: [ \"DOC\" \"%{mydoc}%\"]) \
     will install directory referenced by $(i,package:doc) opam variable in $(i,<install-dir>/mydoc) \
     and set $(i,DOC) environment variable to the $(i,<install-dir>/mydoc) absolute path.");
   ]

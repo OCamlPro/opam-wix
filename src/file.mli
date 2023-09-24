@@ -30,7 +30,7 @@ module Conf: sig
     c_images: images; (* Images files that are treated not as other embedded files *)
     c_binary_path: string option; (* Path to binary to install *)
     c_binary: string option; (* Binary name to install *)
-    c_embbed : (string * string) list; (* Files/directories to embed in installation directory *)
+    c_embedded : (string * string) list; (* Files/directories to embed in installation directory *)
     c_envvar: (string * string) list; (* Environement variables to set in Windows Terminal on installation *)
   }
 

@@ -165,7 +165,7 @@ Configuration
        binary-path, binary
            These are the same as their respective arguments.
 
-       embbed
+       embedded
            A list of files paths to include in the installation directory.
            Each element in this list should be a list of two elements: the
            first being the destination basename (the name of the file in
@@ -178,9 +178,9 @@ Configuration
            A list of environment variables to set/unset in the Windows
            Terminal during install/uninstall. Each element in this list should
            be a list of two elements: the name and the value of the variable.
-           Basenames defined with embbed field could be used as variables, to
+           Basenames defined with "embedded" field could be used as variables, to
            reference absolute installed path. For example:
-           embbed: [ "mydoc" "%{package:doc}%"]
+           embedded: [ "mydoc" "%{package:doc}%"]
            envvar: [ "DOC" "%{mydoc}%"]
            will install directory referenced by package:doc opam variable in
            <install-dir>/mydoc and set DOC environment variable to the
@@ -191,7 +191,7 @@ Configuration
 
 ```
 opamwix-version : "0.1"
-embbed : [
+embedded : [
     [ "dune" "%{bin}%/dune"]
     [ "opamACL.ml" "%{lib}%/opam-core/opamACL.ml"]
     [ "dune-project" "./dune-project"]
