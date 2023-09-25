@@ -23,7 +23,7 @@ type config = {
   icon_file : filename option;
   dlg_bmp : filename option;
   ban_bmp : filename option;
-  keep_wxs : bool
+  keep_wxs : bool;
 }
 
 let get_data o filename =

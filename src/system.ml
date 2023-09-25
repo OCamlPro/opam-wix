@@ -146,9 +146,7 @@ let check_avalable_commands wix_path =
   let wix_bin_exists bin =
     Sys.file_exists @@ Filename.concat wix_path bin
   in
-  if wix_bin_exists "candle.exe"
-    && wix_bin_exists "light.exe"
-    && wix_bin_exists "heat.exe"
+  if List.for_all wix_bin_exists [ "candle.exe"; "light.exe"; "heat.exe" ]
   then
     call_list [
       Which, "cygcheck";

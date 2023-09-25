@@ -1,0 +1,8 @@
+(cram
+ (applies_to :whole_subtree)
+ (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
+
+(rule
+ (target wix311.zip)
+ (action
+   (run curl -s -o %{target} https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip)))
