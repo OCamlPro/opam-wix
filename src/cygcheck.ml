@@ -17,10 +17,11 @@ let filter_system32 path =
 
 let get_dlls path =
   let path = OpamFilename.to_string path in
+  let path_win = System.(cyg_win_path `WinAbs path) in
   match System.(call Cygcheck path) |> List.filter (fun s ->
     not @@ String.equal s "") with
-  | [line] when OpamStd.String.contains ~sub:path line -> []
-  | line::dlls when OpamStd.String.contains ~sub:path line ->
+  | [line] when OpamStd.String.contains ~sub:path_win line -> []
+  | line::dlls when OpamStd.String.contains ~sub:path_win line ->
     List.filter_map (fun dll ->
       let dll = String.trim dll in
       if filter_system32 dll
