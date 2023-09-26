@@ -143,14 +143,21 @@ let call_list : type a. (a command * a) list -> unit =
     | _ -> ()
 
 let check_avalable_commands wix_path =
-  call_list [
-    Which, "cygcheck";
-    Which, "cygpath";
-    Which, "uuidgen";
-    Which, Filename.concat wix_path "candle.exe";
-    Which, Filename.concat wix_path "light.exe";
-    Which, Filename.concat wix_path "heat.exe";
-  ]
+  let wix_bin_exists bin =
+    Sys.file_exists @@ Filename.concat wix_path bin
+  in
+  if wix_bin_exists "candle.exe"
+    && wix_bin_exists "light.exe"
+    && wix_bin_exists "heat.exe"
+  then
+    call_list [
+      Which, "cygcheck";
+      Which, "cygpath";
+      Which, "uuidgen";
+    ]
+  else
+    raise @@ System_error
+      (Format.sprintf "Wix binaries couldn't be found in %s directory." wix_path)
 
 let cyg_win_path out path =
   match call Cygpath (out,path) with
