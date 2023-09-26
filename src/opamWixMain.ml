@@ -81,8 +81,8 @@ module Args = struct
   let wix_path =
     value & opt string "/cygdrive/c/Program Files (x86)/WiX Toolset v3.11/bin"
     & info ["wix-path"] ~docv:"DIR" ~doc:
-    "The path where WIX tools are stored. The path should be full and should use linux format path (with ($i,/) as delimiter) \
-    since presence of such binaries are checked with ($b,which) tool that accepts only this type of path."
+    "The path where WIX tools are stored. The path should be full and should use linux format path (with $(i,/) as delimiter) \
+    since presence of such binaries are checked with $(b,which) tool that accepts only this type of path."
 
   let package_guid =
     value & opt (some string) None & info ["pkg-guid"] ~docv:"UID" ~doc:

@@ -31,8 +31,15 @@ opam init
 #### 2. Install Wix toolset
 * Install [Wix toolset](https://wixtoolset.org) (stable version =< 3.11) and set installation path (often in Program Files) in variable:
 ```bash
-export WIXPATH='/cygdrive/c/Program Files (x86)/<your installation directory>'
+export WIXPATH='/cygdrive/c/Program Files (x86)/<path to the WiX binaries>'
 ```
+
+* You could also avoid graphical installation of Wix and download just [archive with binaries](https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip), extract it and set variable:
+
+```bash
+export WIXPATH='<path-to-extracted-directory>'
+```
+
 * Check that you have the tool `uuidgen`, otherwise install `util-linux` Cygwin package.
 
 #### 3. Install the plugin

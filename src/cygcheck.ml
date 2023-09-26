@@ -28,5 +28,5 @@ let get_dlls path =
       then Some System.(cyg_win_path `CygAbs dll |> OpamFilename.of_string)
       else None) dlls
   | _ -> raise @@
-  System.System_error "cygcheck raised an error. You probably choosed a file \
+  System.System_error "cygcheck raised an error. You probably chose a file \
   with invalid format as your binary."

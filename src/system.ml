@@ -156,4 +156,4 @@ let cyg_win_path out path =
   match call Cygpath (out,path) with
   | line :: _ -> String.trim line
   | _ -> raise @@ System_error "cygpath raised an error. \
-  You probably choosed a file with invalid format as your binary."
+  You probably chose a file with invalid format as your binary."
