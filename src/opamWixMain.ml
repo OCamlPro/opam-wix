@@ -330,7 +330,10 @@ let create_bundle cli =
       let package_name =
         OpamPackage.Name.to_string (OpamPackage.name package)
       let package_version =
-        OpamPackage.Version.to_string (OpamPackage.version package)
+        let version = OpamPackage.Version.to_string (OpamPackage.version package) in
+        match String.index_opt version '~' with
+        | None -> version
+        | Some i -> String.sub version 0 i
       let description =
         (OpamFile.OPAM.synopsis opam)
         ++ (OpamFile.OPAM.descr_body opam)
