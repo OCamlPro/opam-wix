@@ -16,13 +16,14 @@ let conf_default = OpamFilename.of_string "opam-wix.conf"
 
 module Syntax = struct
   let internal = "conf"
-  let format_version = OpamVersion.of_string "0.1"
+  let format_version = OpamVersion.of_string "0.2"
   type images = { ico: string option; dlg: string option; ban: string option }
   type t = {
     c_version: OpamVersion.t;
     c_images: images;
     c_binary_path: string option;
     c_binary: string option;
+    c_wix_version: Wix.Version.t option;
     c_embedded : (string * string) list;
     c_envvar: (string * string) list;
   }
@@ -36,6 +37,7 @@ module Syntax = struct
     };
     c_binary_path = None;
     c_binary = None;
+    c_wix_version = None;
     c_embedded = [];
     c_envvar = [];
   }
@@ -63,6 +65,10 @@ module Syntax = struct
     "binary", OpamPp.ppacc_opt
       (fun binary t -> { t with c_binary = Some binary }) (fun t -> t.c_binary)
       OpamFormat.V.string;
+    "wix-version", OpamPp.ppacc_opt
+      (fun c_wix_version t -> { t with c_wix_version = Some c_wix_version })
+      (fun t -> t.c_wix_version)
+      (OpamFormat.V.string -| OpamPp.of_module "wix_version" (module Wix.Version));
     "embedded", OpamPp.ppacc
       (fun file t -> { t with c_embedded = file }) (fun t -> t.c_embedded)
       (OpamFormat.V.map_list ~depth:2

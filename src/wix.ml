@@ -16,6 +16,20 @@ type component_group = string
 
 type directory_ref = string
 
+module Version = struct
+type t = string
+let to_string s = s
+let of_string s =
+  String.iter (function
+      | '0'..'9' | '.' -> ()
+      | c ->
+        failwith
+          (Printf.sprintf "Invalid character '%c' in WIX version %S" c s))
+    s;
+  s
+end
+
+
 let xml_declaration = {
   version = "1.0";
   encoding = Some "windows-1252";

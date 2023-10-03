@@ -172,6 +172,10 @@ Configuration
        binary-path, binary
            These are the same as their respective arguments.
 
+       wix_version, version
+           The  version  to use to generate the MSI, in a dot separated number
+           format.
+
        embedded
            A list of files paths to include in the installation directory.
            Each element in this list should be a list of two elements: the
