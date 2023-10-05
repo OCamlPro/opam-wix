@@ -22,7 +22,8 @@ type config = {
   package_guid: string option;
   icon_file : filename option;
   dlg_bmp : filename option;
-  ban_bmp : filename option
+  ban_bmp : filename option;
+  keep_wxs : bool;
 }
 
 let get_data o filename =
@@ -101,12 +102,15 @@ module Args = struct
     value & opt (some OpamArg.filename) None & info ["ban-bmp"] ~docv:"FILE" ~doc:
     "BMP file that is used as background for banner for installer."
 
+  let keep_wxs =
+    value & flag & info ["keep-wxs"] ~doc:"Keep Wix source files."
+
   let term =
-    let apply conf package path binary output_dir wix_path package_guid icon_file dlg_bmp ban_bmp =
-      { conf; package; path; binary; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp }
+    let apply conf package path binary output_dir wix_path package_guid icon_file dlg_bmp ban_bmp keep_wxs =
+      { conf; package; path; binary; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp; keep_wxs }
     in
     Term.(const apply $ conffile $ package $ path $ binary $ output_dir $ wix_path $ package_guid $ icon_file $
-      dlg_bmp $ ban_bmp)
+      dlg_bmp $ ban_bmp $ keep_wxs)
 
 end
 
@@ -447,6 +451,13 @@ let create_bundle cli =
       candle_defines = []
     } in
     System.call_unit System.Candle candle;
+    if conf.keep_wxs
+    then begin
+      List.iter (fun file ->
+        OpamFilename.copy_in (OpamFilename.of_string file)
+        @@ OpamFilename.cwd ())
+      wxs_files
+    end;
     let main_obj = name ^ ".wixobj" in
     let addwxs1_obj = Filename.chop_extension addwxs1 ^ ".wixobj" in
     let addwxs2_obj = Filename.chop_extension addwxs2 ^ ".wixobj" in
