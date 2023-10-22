@@ -25,7 +25,11 @@ let get_dlls path =
     List.filter_map (fun dll ->
       let dll = String.trim dll in
       if filter_system32 dll
-      then Some System.(cyg_win_path `CygAbs dll |> OpamFilename.of_string)
+      then Some
+        ((if Sys.cygwin
+          then System.(cyg_win_path `CygAbs dll)
+          else dll)
+          |> OpamFilename.of_string)
       else None) dlls
   | _ -> raise @@
   System.System_error "cygcheck raised an error. You probably chose a file \
