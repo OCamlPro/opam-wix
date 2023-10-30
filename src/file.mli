@@ -34,7 +34,7 @@ module Conf: sig
     c_embedded : (string * string option) list; (* Files/directories to embed in installation directory *)
     c_envvar: (string * string) list; (* Environement variables to set in Windows Terminal on installation *)
   }
-
+ 
   include IO_FILE with type t := t
 
 end

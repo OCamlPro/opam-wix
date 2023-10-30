@@ -385,7 +385,7 @@ let create_bundle cli =
         match alias with
         | Some alias -> Some (Copy_alias (path, alias))
         | _ when OpamStd.String.starts_with ~prefix path ->
-          if OpamFilename.exists (OpamFilename.of_string path) then
+          if not @@ Sys.file_exists path then
             OpamConsole.error_and_exit `Not_found "Couldn't find embedded %s \
             in switch prefix." (OpamConsole.colorise `bold path);
           let path =
@@ -406,7 +406,7 @@ let create_bundle cli =
           alias with absolute path. Skipping..." path;
           None
         | _ ->
-          if OpamFilename.exists (OpamFilename.of_string path)
+          if not @@ Sys.file_exists path
           then OpamConsole.error_and_exit `Not_found
             "Couldn't find embedded %s." (OpamConsole.colorise `bold path);
           Some (Copy_external path))
@@ -446,6 +446,15 @@ let create_bundle cli =
       ^ "CG"
     in
     let dir_ref basename = basename ^ "_REF" in
+    let additional_embedded_name, additional_embedded_dir =
+      let opam_base, opam_dir = if OpamFilename.dir_is_empty opam_dir
+        then [], []
+        else ["opam"], [ opam_dir ]
+      and external_base, external_dir = if OpamFilename.dir_is_empty external_dir
+        then [], []
+        else ["external"], [ external_dir ]
+      in (opam_base @ external_base), (opam_dir @ external_dir)
+    in
     let module Info = struct
       open OpamStd.Option.Op
       let path =
@@ -503,7 +512,7 @@ let create_bundle cli =
           List.map (fun base ->
               base, component_group base, dir_ref base)
             ((List.map (fun (b,_)-> OpamFilename.Base.to_string b) embedded_dirs)
-            @ ["opam"; "external"] )
+            @ additional_embedded_name )
       let embedded_files =
         List.map (fun (base,_) ->
           OpamFilename.Base.to_string base)
@@ -529,7 +538,7 @@ let create_bundle cli =
       ) (embedded_dirs @
         List.map (fun dir ->
             OpamFilename.basename_dir dir,dir)
-          [ opam_dir; external_dir ]);
+          additional_embedded_dir);
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension (OpamFilename.Base.to_string exe_base) in
     let (addwxs1,content1),(addwxs2,content2) =
@@ -548,7 +557,7 @@ let create_bundle cli =
     let embedded_dirs = (List.map (fun (b,_) ->
         OpamFilename.Base.to_string b)
       embedded_dirs)
-      @ ["opam"; "external"]
+      @ additional_embedded_name
     in
     System.call_list @@ List.map (fun basename ->
         let candle_defines = [ Format.sprintf "%sDir=%s\\%s"

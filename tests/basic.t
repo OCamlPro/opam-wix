@@ -236,11 +236,16 @@ Try to install package by specifying explicitly binary path.
 ================== Test 4 ====================
 Testing config file that embeds directory and file and set environment variables.
   $ touch file && mkdir dir && touch dir/file
+  $ mkdir -p dir1/dir2/dir3 && touch dir1/dir2/dir3/file
   $ cat > conf << EOF
   > opamwix-version: "0.1"
   > embedded : [
-  >   ["file_bis" "file"]
-  >   ["dir_bis" "dir"]
+  >   ["file" "file_bis"]
+  >   ["dir" "dir_bis"]
+  >   ["dir1/dir2"]
+  >   ["dir1/dir2/dir3/file"]
+  >   ["dir/file"]
+  >   ["%{foo:bin}%/foo_2"]
   > ]
   > envvar : [
   >   ["VAR1" "val1"]
@@ -260,13 +265,12 @@ Testing config file that embeds directory and file and set environment variables
     - $TESTCASE_ROOT/dlls/dll2.fakedll
   [WARNING] Specified in config path file is relative. Searching in current directory...
   [WARNING] Specified in config path dir is relative. Searching in current directory...
-  [WARNING] Specified in config path dir is relative. Searching in current directory...
-  [WARNING] Specified in config path file is relative. Searching in current directory...
   Bundle created.
   <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
   Compiling WiX components...
   Producing final msi...
   Done.
+
   $ cat foo_2.wxs | sed -e 's/Id="[^"]*"//g' -e 's/UpgradeCode="[^"]*"//g' -e 's/Guid="[^"]*"//g'
   <?xml version="1.0" encoding="windows-1252"?><Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
    <Product Name="foo.foo_2"   Language="1033" Codepage="1252" Version="0.2" Manufacturer="John Smith">
@@ -299,6 +303,8 @@ Testing config file that embeds directory and file and set environment variables
         <File  Name="file_bis" Disk Source="foo.0.2/file_bis"/>
        </Component>
        <Directory  Name="dir_bis"/>
+       <Directory  Name="opam"/>
+       <Directory  Name="external"/>
       </Directory>
      </Directory>
      <Directory  Name="Programs">
@@ -336,6 +342,8 @@ Testing config file that embeds directory and file and set environment variables
      <ComponentRef />
      <ComponentRef />
      <ComponentRef />
+     <ComponentGroupRef />
+     <ComponentGroupRef />
      <ComponentGroupRef />
      <ComponentRef />
      <ComponentRef />
