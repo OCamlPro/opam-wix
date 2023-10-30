@@ -27,6 +27,11 @@ type config = {
   keep_wxs : bool;
 }
 
+type embedded =
+  | Copy_alias of string * string
+  | Copy_external of string
+  | Copy_opam of string
+
 let get_data o filename =
   try Option.get o with
   | Invalid_argument _ -> OpamConsole.error_and_exit `Configuration_error
@@ -321,6 +326,10 @@ let create_bundle cli =
       (OpamStd.Format.itemize OpamFilename.to_string dlls);
     let bundle_dir = OpamFilename.Op.(tmp_dir / OpamPackage.to_string package) in
     OpamFilename.mkdir bundle_dir;
+    let opam_dir = OpamFilename.Op.(bundle_dir / "opam") in
+    let external_dir = OpamFilename.Op.(bundle_dir / "external") in
+    OpamFilename.mkdir opam_dir;
+    OpamFilename.mkdir external_dir;
     List.iter (fun dll -> OpamFilename.copy_in dll bundle_dir) dlls;
     let exe_base =
       let base = OpamFilename.basename binary_path in
@@ -348,15 +357,78 @@ let create_bundle cli =
       F.copy ~src ~dst;
       F.basename dst, dst
     in
-    let emb_dirs, emb_files = List.partition (fun (_,path) ->
-      let path = resolve_path_aux env path in
-      Sys.is_directory path) conffile.File.Conf.c_embedded
+    let copy_include path src_dir dst_dir =
+      let sep = if Sys.cygwin then '/' else '\\' in
+      let dirs = OpamStd.String.split path sep in
+      let rec aux src dst files =
+        match files with
+        | [] -> ()
+        | [ file ] when Sys.is_directory @@
+          Filename.concat (OpamFilename.Dir.to_string src) file ->
+            let src = OpamFilename.Op.(src/file) in
+            let dst = OpamFilename.Op.(dst/file) in
+            OpamFilename.copy_dir ~src ~dst;
+        | [ file ] ->
+          let src' = OpamFilename.Op.(src//file) in
+          OpamFilename.copy_in src' dst;
+        | file :: files ->
+          let src =  OpamFilename.Op.(src/file) in
+          let dst = OpamFilename.Op.(dst/file) in
+          if not @@ OpamFilename.exists_dir dst then OpamFilename.mkdir dst;
+          aux src dst files
+      in
+      aux src_dir dst_dir dirs
     in
-    let embedded_dirs = List.map (fun (name, dirname) ->
-      copy_embedded (module Dir_impl) dirname name) emb_dirs
+    let emb_modes = List.filter_map (fun (path,alias) ->
+        let path = OpamFilter.expand_string env path in
+        let prefix = OpamPath.Switch.root gt.root st.switch |> OpamFilename.Dir.to_string in
+        match alias with
+        | Some alias -> Some (Copy_alias (path, alias))
+        | _ when OpamStd.String.starts_with ~prefix path ->
+          if OpamFilename.exists (OpamFilename.of_string path) then
+            OpamConsole.error_and_exit `Not_found "Couldn't find embedded %s \
+            in switch prefix." (OpamConsole.colorise `bold path);
+          let path =
+            OpamStd.String.remove_prefix
+              ~prefix:Filename.dir_sep @@
+                OpamStd.String.remove_prefix ~prefix path
+          in
+          begin
+            match String.trim path with
+            | "" ->
+              OpamConsole.warning "Specify a subdirectory of opam-prefix to \
+              include in your installtion. Skipping...";
+              None
+            | _ -> Some (Copy_opam path)
+          end
+        | _ when not (Filename.is_relative path || Filename.is_implicit path) ->
+          OpamConsole.warning "Path %s is absolute or contains \"..\". You should specify \
+          alias with absolute path. Skipping..." path;
+          None
+        | _ ->
+          if OpamFilename.exists (OpamFilename.of_string path)
+          then OpamConsole.error_and_exit `Not_found
+            "Couldn't find embedded %s." (OpamConsole.colorise `bold path);
+          Some (Copy_external path))
+      conffile.File.Conf.c_embedded
     in
-    let embedded_files = List.map (fun (name, filename) ->
-      copy_embedded (module File_impl) filename name) emb_files
+    let (embedded_dirs : (basename * dirname) list),
+        (embedded_files : (basename * filename) list) =
+      List.fold_left (fun (dirs, files) -> function
+          | Copy_alias (dirname, alias) when Sys.is_directory dirname ->
+              let dir =  copy_embedded (module Dir_impl) dirname alias in
+              (dir::dirs, files)
+          | Copy_alias (filename, alias) ->
+            let file = copy_embedded (module File_impl) filename alias in
+            (dirs, file::files)
+          | Copy_opam path ->
+            let prefix = OpamPath.Switch.root gt.root st.switch in
+            copy_include path prefix opam_dir;
+            (dirs, files)
+          | Copy_external path ->
+            copy_include path (OpamFilename.Dir.of_string ".") external_dir;
+            (dirs, files))
+        ([],[]) emb_modes
     in
     OpamConsole.formatted_msg "Bundle created.";
     OpamConsole.header_msg "WiX setup";
@@ -428,10 +500,10 @@ let create_bundle cli =
             var, content)
           conffile.File.Conf.c_envvar
       let embedded_dirs =
-          List.map (fun (base,_) ->
-            let base = OpamFilename.Base.to_string base in
-            base, component_group base, dir_ref base)
-          embedded_dirs
+          List.map (fun base ->
+              base, component_group base, dir_ref base)
+            ((List.map (fun (b,_)-> OpamFilename.Base.to_string b) embedded_dirs)
+            @ ["opam"; "external"] )
       let embedded_files =
         List.map (fun (base,_) ->
           OpamFilename.Base.to_string base)
@@ -454,7 +526,10 @@ let create_bundle cli =
         heat_var = Format.sprintf "var.%sDir" basename
       } in
       System.Heat, heat
-      ) embedded_dirs;
+      ) (embedded_dirs @
+        List.map (fun dir ->
+            OpamFilename.basename_dir dir,dir)
+          [ opam_dir; external_dir ]);
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension (OpamFilename.Base.to_string exe_base) in
     let (addwxs1,content1),(addwxs2,content2) =
@@ -470,20 +545,24 @@ let create_bundle cli =
     let main_path = OpamFilename.Op.(tmp_dir // (name ^ ".wxs")) in
     Wix.write_wxs (OpamFilename.to_string main_path) wxs;
     OpamConsole.formatted_msg "Compiling WiX components...\n";
-    System.call_list @@ List.map (fun (basename, _) ->
-      let basename = OpamFilename.Base.to_string basename in
-      let candle_defines = [ Format.sprintf "%sDir=%s\\%s"
-        basename (OpamPackage.to_string package) basename ]
-      in
-      let prefix = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename in
-      let candle = System.{
-        candle_wix_path = wix_path;
-        candle_files = One (prefix ^ ".wxs" |> cyg_win_path `WinAbs,
-          prefix ^ ".wixobj" |> cyg_win_path `WinAbs);
-        candle_defines
-      } in
-      System.Candle, candle
-      ) embedded_dirs;
+    let embedded_dirs = (List.map (fun (b,_) ->
+        OpamFilename.Base.to_string b)
+      embedded_dirs)
+      @ ["opam"; "external"]
+    in
+    System.call_list @@ List.map (fun basename ->
+        let candle_defines = [ Format.sprintf "%sDir=%s\\%s"
+          basename (OpamPackage.to_string package) basename ]
+        in
+        let prefix = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename in
+        let candle = System.{
+          candle_wix_path = wix_path;
+          candle_files = One (prefix ^ ".wxs" |> cyg_win_path `WinAbs,
+            prefix ^ ".wixobj" |> cyg_win_path `WinAbs);
+          candle_defines
+        } in
+        System.Candle, candle
+      ) embedded_dirs ;
     let wxs_files =
       (OpamFilename.to_string main_path |> System.cyg_win_path `WinAbs)
         :: additional_wxs
@@ -518,9 +597,9 @@ let create_bundle cli =
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs2_obj
         |> System.cyg_win_path `WinAbs;
     ] @
-    List.map (fun (base,_) ->
+    List.map (fun base ->
       Filename.concat (OpamFilename.Dir.to_string tmp_dir)
-        (OpamFilename.Base.to_string base) ^ ".wixobj"
+        base ^ ".wixobj"
       |> System.cyg_win_path `WinAbs ) embedded_dirs
     in
     let light = System.{
