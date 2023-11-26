@@ -17,6 +17,7 @@ type config = {
   package : OpamPackage.Name.t;
   path : filename option;
   binary: string option;
+  wix_version: Wix.Version.t option;
   output_dir : dirname;
   wix_path : string;
   package_guid: string option;
@@ -54,6 +55,14 @@ end
 module Args = struct
   open Arg
 
+  let wix_version_conv =
+    let parse str =
+      try `Ok (Wix.Version.of_string str)
+      with Failure s -> `Error s
+    in
+    let print ppf wxv = Format.pp_print_string ppf (Wix.Version.to_string wxv) in
+    parse, print
+
   module Section = struct
     let package_arg = "PACKAGE ARGUMENT"
     let bin_args = "BINARY ARGUMENT"
@@ -74,6 +83,10 @@ module Args = struct
   let binary =
     value & opt (some string) None & info ["binary";"b"] ~docs:Section.bin_args ~docv:"NAME" ~doc:
     "The binary name to handle. Specified package should contain the binary with the same name."
+
+  let wix_version =
+    value & opt (some wix_version_conv) None & info ["with-version"] ~docv:"VERSION"
+    ~doc:"The version to use for the installer, in an msi format, i.e. numbers and dots, [0-9.]+"
 
   let output_dir =
     value & opt OpamArg.dirname (OpamFilename.Dir.of_string ".") & info ["o";"output"] ~docv:"DIR" ~doc:
@@ -106,10 +119,10 @@ module Args = struct
     value & flag & info ["keep-wxs"] ~doc:"Keep Wix source files."
 
   let term =
-    let apply conf package path binary output_dir wix_path package_guid icon_file dlg_bmp ban_bmp keep_wxs =
-      { conf; package; path; binary; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp; keep_wxs }
+    let apply conf package path binary wix_version output_dir wix_path package_guid icon_file dlg_bmp ban_bmp keep_wxs =
+      { conf; package; path; binary; wix_version; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp; keep_wxs }
     in
-    Term.(const apply $ conffile $ package $ path $ binary $ output_dir $ wix_path $ package_guid $ icon_file $
+    Term.(const apply $ conffile $ package $ path $ binary $ wix_version $ output_dir $ wix_path $ package_guid $ icon_file $
       dlg_bmp $ ban_bmp $ keep_wxs)
 
 end
@@ -171,6 +184,7 @@ let normalize_conf env conf file =
   {
     conf with
     binary = merge_opt conf.binary file.c_binary;
+    wix_version = merge_opt conf.wix_version file.c_wix_version;
     path = merge_opt conf.path
       (Option.map (resolve_path env (module File_impl)) file.c_binary_path);
     icon_file = merge_opt conf.icon_file
@@ -200,6 +214,39 @@ let create_bundle cli =
       "Package %s isn't found in your current switch. Please, run %s and retry."
       (OpamConsole.colorise `bold (OpamPackage.Name.to_string conf.package))
       (OpamConsole.colorise `bold ("opam install " ^ (OpamPackage.Name.to_string conf.package)))
+    in
+    let package_version =
+      match conf.wix_version with
+      | Some v -> v
+      | None ->
+        let pkg_version =
+          OpamPackage.Version.to_string (OpamPackage.version package)
+        in
+        try Wix.Version.of_string pkg_version
+        with Failure _ ->
+          (OpamConsole.warning
+             "Package version %s contains characters not accepted by MSI."
+             (OpamConsole.colorise `underline pkg_version);
+           let use = "use config file to set it or option --with-version" in
+           let version =
+             let n =
+               OpamStd.String.find_from (function '0'..'9' | '.' -> false | _ -> true)
+                 pkg_version 0
+             in
+             if n = 0 then
+               OpamConsole.error_and_exit `Not_found
+                 "No version can be retrieved from '%s', %s."
+                 pkg_version use
+             else
+               String.sub pkg_version 0 n
+           in
+           OpamConsole.msg
+             "It must be only dot separated numbers. You can %s.\n" use;
+           if
+             OpamConsole.confirm "Do you want to use simplified version %s?"
+               (OpamConsole.colorise `underline version)
+           then version
+           else OpamStd.Sys.exit_because `Aborted)
     in
     let opam = OpamSwitchState.opam st package in
     let bin_path = OpamPath.Switch.bin gt.root st.switch st.switch_config in
@@ -333,11 +380,7 @@ let create_bundle cli =
         Filename.basename @@ OpamFilename.Dir.to_string bundle_dir
       let package_name =
         OpamPackage.Name.to_string (OpamPackage.name package)
-      let package_version =
-        let version = OpamPackage.Version.to_string (OpamPackage.version package) in
-        match String.index_opt version '~' with
-        | None -> version
-        | Some i -> String.sub version 0 i
+      let package_version = package_version
       let description =
         (OpamFile.OPAM.synopsis opam)
         ++ (OpamFile.OPAM.descr_body opam)
@@ -535,6 +578,7 @@ let create_bundle cli =
     `I ("$(i,opamwix-version)","The version of the config file. The current version is $(b,0.1).");
     `I ("$(i,ico, bng, ban)","These are the same as their respective arguments.");
     `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
+    `I ("$(i,wix_version)","The version to use to generate the MSI, in a dot separated number format.");
     `I ("$(i,embedded)", "A list of files or directories paths to include in the installation directory. \
     Each element in this list should be a list of two elements: the first being the destination \
     basename (the name of the file in the installation directory), and the second being the \

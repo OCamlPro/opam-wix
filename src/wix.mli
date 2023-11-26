@@ -17,6 +17,13 @@ type component_group = string
 (** Directory id reference *)
 type directory_ref = string
 
+(** Version in the form [0-9.]+, i.e dot separated numbers *)
+module Version: sig
+  type t = string
+  val to_string : t -> string
+  val of_string : string -> t
+end
+
 (** Information module used to generated main wxs document. *)
 module type INFO = sig
     (** Path to the bundle containing all required files. Every relative file path will be concatenated to this path *)

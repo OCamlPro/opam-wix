@@ -399,3 +399,46 @@ Testing config file that embeds directory and file and set environment variables
     <UIRef />
    </Product>
   </Wix>
+
+================== Test 6 ====================
+Version testing
+  $ mkdir bar
+  $ cp compile bar/compile
+  $ cat > bar/bar-with-plus.opam << EOF
+  > opam-version: "2.0"
+  > version: "0.1+23"
+  > name: "bar-with-plus"
+  > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
+  > EOF
+  $ cat > bar/bar-beg-alpha << EOF
+  > opam-version: "2.0"
+  > version: "v012"
+  > name: "bar-with-plus"
+  > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
+  > EOF
+  $ cat > bar/bar-only-alpha.opam << EOF
+  > opam-version: "2.0"
+  > version: "aversion"
+  > name: "bar-with-plus"
+  > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
+  > EOF
+  $ opam pin ./bar -y
+  $ opam-wix --wix-path=$WIX_PATH bar-with-plus
+  $ opam-wix --wix-path=$WIX_PATH bar-with-plus -y
+  $ opam-wix --wix-path=$WIX_PATH bar-beg-alpha
+  $ opam-wix --wix-path=$WIX_PATH bar-only-alpha
+  $ opam-wix --wix-path=$WIX_PATH bar-only-alpha --with-version 4.2
+  $ cat > conf << EOF
+  > opamwix-version: "0.1"
+  > wix_version: "3.2+3"
+  > EOF
+  $ opam-wix --wix-path=$WIX_PATH --conf conf bar-only-alpha
+  $ cat > conf << EOF
+  > opamwix-version: "0.1"
+  > wix_version: "3.2"
+  > EOF
+  $ opam-wix --wix-path=$WIX_PATH --conf conf bar-only-alpha
+
+
+
+
