@@ -606,7 +606,7 @@ let () =
   let term, info = create_bundle (OpamCLIVersion.default, `Default) in
   exit @@ Cmd.eval ~catch:false (Cmd.v info term)
   *)
-  let terminfo = create_bundle (OpamCLIVersion.default, `Default) in
+  let terminfo = create_bundle (OpamCLIVersion.current, `Default) in
   match Term.eval ~catch:false terminfo with
   | exception System.System_error err ->
     OpamConsole.error_and_exit `Aborted "%s" err
