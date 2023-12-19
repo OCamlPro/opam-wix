@@ -3,8 +3,8 @@ This test verify functionalities of `opam-wix`. We do this by using -k option to
 === Check system ===
   $ opam --version
   2.1.5
-  $ ocaml -e 'Printf.printf "is cygwin? %b" Sys.cygwin;;'
-  is cygwin? true
+  $ ocaml -e 'Printf.printf "is win32? %b" Sys.win32;;'
+  is win32? true
 === Opam setup ===
   $ export OPAMNOENVNOTICE=1
   $ export OPAMYES=1
