@@ -14,13 +14,12 @@ version 3.11.
   $ export OPAMROOT=$PWD/OPAMROOT
   $ export OPAMSTATUSLINE=never
   $ export OPAMVERBOSE=-1
-  $ cat > compile << EOF
+  $ mkdir archive
+  $ cat > archive/compile << EOF
   > #!/bin/sh
   > echo "I'm launching \$(basename \${0}) \$@!"
   > EOF
-  $ chmod +x compile
-  $ tar czf compile.tar.gz compile
-  $ SHA=`openssl sha256 compile.tar.gz | cut -d ' ' -f 2`
+  $ chmod +x archive/compile
 Repo setup
   $ mkdir -p REPO/packages/
   $ cat > REPO/repo << EOF
@@ -36,13 +35,8 @@ Foo package.
   > synopsis: "Foo tool"
   > tags : ["tool" "dummy"]
   > build: [ "sh" "compile" name ]
-  > install: [
-  >  [ "cp" "compile" "%{bin}%/%{name}%" ]
-  > ]
-  > url {
-  >  src: "file://./compile.tar.gz"
-  >  checksum: "sha256=$SHA"
-  > }
+  > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
+  > url { src: "file://./archive" }
   > EOF
   $ cat > REPO/packages/foo/foo.0.2/opam << EOF
   > opam-version: "2.0"
@@ -56,10 +50,7 @@ Foo package.
   >  [ "cp" "compile" "%{bin}%/%{name}%_1" ]
   >  [ "cp" "compile" "%{bin}%/%{name}%_2" ]
   > ]
-  > url {
-  >  src: "file://./compile.tar.gz"
-  >  checksum: "sha256=$SHA"
-  > }
+  > url { src: "file://./archive" }
   > EOF
 Opam setup
   $ mkdir $OPAMROOT
@@ -87,7 +78,7 @@ Try to install package with just one binary.
     - install foo 0.1
   
   <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-  -> retrieved foo.0.1  (file://./compile.tar.gz)
+  -> retrieved foo.0.1  (file://./archive)
   -> installed foo.0.1
   Done.
   $ cat > bins/cygcheck << EOF
@@ -204,7 +195,7 @@ Try to install package by specifying explicitly binary name.
     - upgrade foo 0.1 to 0.2
   
   <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-  -> retrieved foo.0.2  (cached)
+  -> retrieved foo.0.2  (file://./archive)
   -> removed   foo.0.1
   -> installed foo.0.2
   Done.
@@ -415,7 +406,7 @@ Testing config file that embeds directory and file and set environment variables
 ================== Test 6 ====================
 Version testing
   $ mkdir bar
-  $ cp compile bar/compile
+  $ cp archive/compile bar/compile
   $ cat > bar/bar-with-plus.opam << EOF
   > opam-version: "2.0"
   > version: "0.1+23"
