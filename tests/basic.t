@@ -102,6 +102,8 @@ Try to install package with just one binary.
   Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/foo
   <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
   Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
   Bundle created.
   <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
   Compiling WiX components...
@@ -129,6 +131,10 @@ Try to install package with just one binary.
          ADDTOPATH
         </Condition>
         <Environment  Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="yes"/>
+       </Component>
+       <Component  >
+        <File  Name="dll1.fakedll" Disk Source="foo.0.1/dll1.fakedll"/>
+        <File  Name="dll2.fakedll" Disk Source="foo.0.1/dll2.fakedll"/>
        </Component>
       </Directory>
      </Directory>
@@ -164,6 +170,7 @@ Try to install package with just one binary.
     </Directory>
     <SetDirectory  Value="[SystemFolder]"/>
     <Feature  Title="foo.0.1-foo" Description="foo.foo complete install." Level="1">
+     <ComponentRef />
      <ComponentRef />
      <ComponentRef />
      <ComponentRef />
@@ -408,37 +415,147 @@ Version testing
   > opam-version: "2.0"
   > version: "0.1+23"
   > name: "bar-with-plus"
+  > maintainer : [ "John Smith"]
+  > synopsis: "Foo tool"
+  > tags : ["tool" "dummy"]
   > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
   > EOF
-  $ cat > bar/bar-beg-alpha << EOF
+  $ cat > bar/bar-beg-alpha.opam << EOF
   > opam-version: "2.0"
   > version: "v012"
   > name: "bar-with-plus"
+  > maintainer : [ "John Smith"]
+  > synopsis: "Foo tool"
+  > tags : ["tool" "dummy"]
   > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
   > EOF
   $ cat > bar/bar-only-alpha.opam << EOF
   > opam-version: "2.0"
   > version: "aversion"
   > name: "bar-with-plus"
+  > maintainer : [ "John Smith"]
+  > synopsis: "Foo tool"
+  > tags : ["tool" "dummy"]
   > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
   > EOF
-  $ opam pin ./bar -y
+  $ opam pin ./bar -y | sed 's/file:\/\/[^ ]*/$FILE_PATH/g'
+  [NOTE] External dependency handling not supported for OS family 'windows'.
+         You can disable this check using 'opam option --global depext=false'
+  This will pin the following packages: bar-beg-alpha, bar-only-alpha, bar-with-plus. Continue? [Y/n] y
+  Package bar-beg-alpha does not exist, create as a NEW package? [Y/n] y
+  bar-beg-alpha is now pinned to $FILE_PATH (version v012)
+  Package bar-only-alpha does not exist, create as a NEW package? [Y/n] y
+  bar-only-alpha is now pinned to $FILE_PATH (version aversion)
+  Package bar-with-plus does not exist, create as a NEW package? [Y/n] y
+  bar-with-plus is now pinned to $FILE_PATH (version 0.1+23)
+  
+  The following actions will be performed:
+    - install bar-only-alpha aversion*
+    - install bar-with-plus  0.1+23*
+    - install bar-beg-alpha  v012*
+  ===== 3 to install =====
+  
+  <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  -> installed bar-beg-alpha.v012
+  -> installed bar-only-alpha.aversion
+  -> installed bar-with-plus.0.1+23
+  Done.
+  $ cat > bins/cygcheck << EOF
+  > #!/bin/sh
+  > 
+  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/bar-with-plus)"
+  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
+  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
+  > 
+  > EOF
+  $ chmod +x bins/cygcheck
   $ opam-wix --wix-path=$WIX_PATH bar-with-plus
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  [WARNING] Package version 0.1+23 contains characters not accepted by MSI.
+  It must be only dot separated numbers. You can use config file to set it or option --with-version.
+  Do you want to use simplified version 0.1? [Y/n] n
+  [10]
   $ opam-wix --wix-path=$WIX_PATH bar-with-plus -y
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  [WARNING] Package version 0.1+23 contains characters not accepted by MSI.
+  It must be only dot separated numbers. You can use config file to set it or option --with-version.
+  Do you want to use simplified version 0.1? [Y/n] y
+  Package bar-with-plus.0.1+23 found with binaries:
+    - bar-with-plus
+  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/bar-with-plus
+  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
+  Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
+  Bundle created.
+  <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Compiling WiX components...
+  Producing final msi...
+  Done.
   $ opam-wix --wix-path=$WIX_PATH bar-beg-alpha
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  [WARNING] Package version v012 contains characters not accepted by MSI.
+  [ERROR] No version can be retrieved from 'v012', use config file to set it or option --with-version.
+  [5]
+  $ cat > bins/cygcheck << EOF
+  > #!/bin/sh
+  > 
+  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/bar-only-alpha)"
+  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
+  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
+  > 
+  > EOF
+  $ chmod +x bins/cygcheck
   $ opam-wix --wix-path=$WIX_PATH bar-only-alpha
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  [WARNING] Package version aversion contains characters not accepted by MSI.
+  [ERROR] No version can be retrieved from 'aversion', use config file to set it or option --with-version.
+  [5]
   $ opam-wix --wix-path=$WIX_PATH bar-only-alpha --with-version 4.2
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Package bar-only-alpha.aversion found with binaries:
+    - bar-only-alpha
+  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/bar-only-alpha
+  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
+  Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
+  Bundle created.
+  <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Compiling WiX components...
+  Producing final msi...
+  Done.
   $ cat > conf << EOF
-  > opamwix-version: "0.1"
-  > wix_version: "3.2+3"
+  > opamwix-version: "0.2"
+  > wix-version: "3.2+3"
   > EOF
   $ opam-wix --wix-path=$WIX_PATH --conf conf bar-only-alpha
+  Fatal error:
+  At $TESTCASE_ROOT/conf:2:0-2:20::
+  while expecting wix_version: Invalid character '+' in WIX version "3.2+3"
+  [99]
   $ cat > conf << EOF
-  > opamwix-version: "0.1"
-  > wix_version: "3.2"
+  > opamwix-version: "0.2"
+  > wix-version: "3.2"
   > EOF
   $ opam-wix --wix-path=$WIX_PATH --conf conf bar-only-alpha
-
-
-
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Package bar-only-alpha.aversion found with binaries:
+    - bar-only-alpha
+  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/bar-only-alpha
+  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
+  Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
+  Bundle created.
+  <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Compiling WiX components...
+  Producing final msi...
+  Done.
 
