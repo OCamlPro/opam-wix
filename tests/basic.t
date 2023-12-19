@@ -71,11 +71,7 @@ Wix Toolset config.
   $ WIX_PATH=$PWD/wix311
 Cygcheck overriding and dlls.
   $ mkdir dlls bins
-  $ touch dlls/dll1.fakedll dlls/dll2.fakedll
- 
-  $ chmod +x bins/cygcheck
-  chmod: cannot access 'bins/cygcheck': No such file or directory
-  [1]
+  $ touch dlls/dll1.fakedll dlls/dll2.fakedll 
   $ export PATH=$PWD/bins:$PATH
 ================== Test 1 ====================
 Try to install package with just one binary.
@@ -97,6 +93,7 @@ Try to install package with just one binary.
   > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
   > 
   > EOF
+  $ chmod +x bins/cygcheck
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
