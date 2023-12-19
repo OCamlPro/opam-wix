@@ -59,6 +59,8 @@ Opam setup
   
   <><> Fetching repository information ><><><><><><><><><><><><><><><><><><><><><>
   [default] Initialised
+  $ opam option --global depext=false
+  Set to 'false' the field depext in global configuration
   $ opam switch create one --empty
 
 Wix Toolset config.
@@ -81,8 +83,6 @@ Cygcheck overriding and dlls.
 ================== Test 1 ====================
 Try to install package with just one binary.
   $ opam install foo.0.1
-  [NOTE] External dependency handling not supported for OS family 'windows'.
-         You can disable this check using 'opam option --global depext=false'
   The following actions will be performed:
     - install foo 0.1
   
@@ -189,8 +189,6 @@ Try to install package with just one binary.
 ================== Test 2 ====================
 Try to install package by specifying explicitly binary name.
   $ opam install foo.0.2
-  [NOTE] External dependency handling not supported for OS family 'windows'.
-         You can disable this check using 'opam option --global depext=false'
   The following actions will be performed:
     - upgrade foo 0.1 to 0.2
   
@@ -408,8 +406,6 @@ Version testing
   > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
   > EOF
   $ opam pin ./bar -y | sed 's/file:\/\/[^ ]*/$FILE_PATH/g'
-  [NOTE] External dependency handling not supported for OS family 'windows'.
-         You can disable this check using 'opam option --global depext=false'
   This will pin the following packages: bar-beg-alpha, bar-only-alpha, bar-with-plus. Continue? [Y/n] y
   Package bar-beg-alpha does not exist, create as a NEW package? [Y/n] y
   bar-beg-alpha is now pinned to $FILE_PATH (version v012)
