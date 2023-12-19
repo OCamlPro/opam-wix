@@ -1,5 +1,11 @@
 (cram
- (applies_to :whole_subtree)
+ (alias cygwin)
+ (applies_to basic)
+ (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
+
+(cram
+ (alias mingw)
+ (applies_to basic_mingw)
  (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
 
 (rule
