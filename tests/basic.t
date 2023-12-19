@@ -1,4 +1,7 @@
-This test verify functionalities of `opam-wix`. We do this by using -k option to keep every build artefact for Wix. For test purpose, we will use mock version of package `foo`, `cygcheck` and dlls. Test depends on Wix toolset of version 3.11.
+This test verify functionalities of `opam-wix`. We do this by using -k option
+to keep every build artefact for Wix. For test purpose, we will use mock
+version of package `foo`, `cygcheck` and dlls. Test depends on Wix toolset of
+version 3.11.
 
 === Check system ===
   $ opam --version
@@ -193,7 +196,7 @@ Try to install package with just one binary.
   </Wix>
 
 ================== Test 2 ====================
-Try to install package by specifing explicitely binary name.
+Try to install package by specifying explicitly binary name.
   $ opam install foo.0.2
   [NOTE] External dependency handling not supported for OS family 'windows'.
          You can disable this check using 'opam option --global depext=false'
@@ -214,7 +217,7 @@ Try to install package by specifing explicitely binary name.
   > 
   > EOF
   $ chmod +x bins/cygcheck
-  $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo -b foo_1 
+  $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo -b foo_1
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
   Package foo.0.2 found with binaries:
@@ -232,7 +235,6 @@ Try to install package by specifing explicitely binary name.
   Done.
 
 ================== Test 3 ====================
-Try to install package by specifing explicitely binary path.
   $ cat > bins/cygcheck << EOF
   > #!/bin/sh
   > 
@@ -242,6 +244,7 @@ Try to install package by specifing explicitely binary path.
   > 
   > EOF
   $ chmod +x bins/cygcheck
+Try to install package by specifying explicitly binary path.
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -260,7 +263,6 @@ Try to install package by specifing explicitely binary path.
   Done.
 
 ================== Test 4 ====================
-Try to install package by specifing explicitely binary path.
   $ cat > bins/cygcheck << EOF
   > #!/bin/sh
   > 
@@ -270,6 +272,7 @@ Try to install package by specifing explicitely binary path.
   > 
   > EOF
   $ chmod +x bins/cygcheck
+Try to install package by specifying explicitly binary path.
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
