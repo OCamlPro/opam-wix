@@ -67,6 +67,15 @@ Wix Toolset config.
   $ WIX_PATH=$PWD/wix311
 Cygcheck overriding and dlls.
   $ mkdir dlls bins
+  $ cat > bins/cygcheck << EOF
+  > #!/bin/sh
+  > 
+  > cygpath -wa \$1
+  > cygpath -wa $PWD/dlls/dll1.fakedll
+  > cygpath -wa $PWD/dlls/dll2.fakedll
+  > 
+  > EOF
+  $ chmod +x bins/cygcheck
   $ touch dlls/dll1.fakedll dlls/dll2.fakedll 
   $ export PATH=$PWD/bins:$PATH
 ================== Test 1 ====================
@@ -81,15 +90,6 @@ Try to install package with just one binary.
   -> retrieved foo.0.1  (file://./archive)
   -> installed foo.0.1
   Done.
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/foo)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -199,15 +199,6 @@ Try to install package by specifying explicitly binary name.
   -> removed   foo.0.1
   -> installed foo.0.2
   Done.
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/foo_1)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo -b foo_1
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -226,15 +217,6 @@ Try to install package by specifying explicitly binary name.
   Done.
 
 ================== Test 3 ====================
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/foo_2)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
 Try to install package by specifying explicitly binary path.
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
   
@@ -254,15 +236,6 @@ Try to install package by specifying explicitly binary path.
   Done.
 
 ================== Test 4 ====================
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/foo_2)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
 Try to install package by specifying explicitly binary path.
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
   
@@ -456,15 +429,6 @@ Version testing
   -> installed bar-only-alpha.aversion
   -> installed bar-with-plus.0.1+23
   Done.
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/bar-with-plus)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
   $ opam-wix --wix-path=$WIX_PATH bar-with-plus
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -496,15 +460,6 @@ Version testing
   [WARNING] Package version v012 contains characters not accepted by MSI.
   [ERROR] No version can be retrieved from 'v012', use config file to set it or option --with-version.
   [5]
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/bar-only-alpha)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
   $ opam-wix --wix-path=$WIX_PATH bar-only-alpha
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
