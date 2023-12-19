@@ -216,7 +216,7 @@ Try to install package by specifying explicitly binary name.
 
 ================== Test 3 ====================
 Try to install package by specifying explicitly binary path.
-  $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
+  $ opam-wix --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
   Package foo.0.2 found with binaries:
@@ -234,25 +234,6 @@ Try to install package by specifying explicitly binary path.
   Done.
 
 ================== Test 4 ====================
-Try to install package by specifying explicitly binary path.
-  $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo --bp OPAMROOT/one/bin/foo_2
-  
-  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-  Package foo.0.2 found with binaries:
-    - foo_1
-    - foo_2
-  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/foo_2
-  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
-  Getting dlls:
-    - $TESTCASE_ROOT/dlls/dll1.fakedll
-    - $TESTCASE_ROOT/dlls/dll2.fakedll
-  Bundle created.
-  <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-  Compiling WiX components...
-  Producing final msi...
-  Done.
-
-================== Test 5 ====================
 Testing config file that embeds directory and file and set environment variables.
   $ touch file && mkdir dir && touch dir/file
   $ cat > conf << EOF
@@ -374,7 +355,7 @@ Testing config file that embeds directory and file and set environment variables
    </Product>
   </Wix>
 
-================== Test 6 ====================
+================== Test 5 ====================
 Version testing
   $ mkdir bar
   $ cp archive/compile bar/compile
