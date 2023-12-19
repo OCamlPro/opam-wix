@@ -207,7 +207,8 @@ let create_bundle cli =
       let file = OpamStd.Option.default File.conf_default conf.conf in
       File.Conf.safe_read (OpamFile.make file)
     in
-    System.check_avalable_commands conf.wix_path;
+    let wix_path = System.normalize_path conf.wix_path in
+    System.check_avalable_commands wix_path;
     OpamConsole.header_msg "Initialising opam";
     OpamArg.apply_global_options cli global_options;
     OpamGlobalState.with_ `Lock_read @@ fun gt ->
@@ -519,10 +520,6 @@ let create_bundle cli =
           OpamFilename.Base.to_string base)
         embedded_files
     end in
-    let wix_path = if Sys.cygwin
-      then conf.wix_path
-      else System.cyg_win_path `WinAbs conf.wix_path
-    in
     System.call_list @@ List.map (fun (basename, dirname) ->
       let basename = OpamFilename.Base.to_string basename in
       let heat = System.{

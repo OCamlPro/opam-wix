@@ -142,6 +142,17 @@ let call_list : type a. (a command * a) list -> unit =
       (Format.sprintf "%s" (OpamProcess.string_of_result result))
     | _ -> ()
 
+let cyg_win_path out path =
+  match call Cygpath (out,path) with
+  | line :: _ -> String.trim line
+  | _ -> raise @@ System_error "cygpath raised an error. \
+    You probably chose a file with invalid format as your binary."
+
+let normalize_path = 
+  if Sys.cygwin
+  then cyg_win_path `CygAbs
+  else cyg_win_path `WinAbs
+
 let check_avalable_commands wix_path =
   let wix_bin_exists bin =
     Sys.file_exists @@ Filename.concat wix_path bin
@@ -157,8 +168,3 @@ let check_avalable_commands wix_path =
     raise @@ System_error
       (Format.sprintf "Wix binaries couldn't be found in %s directory." wix_path)
 
-let cyg_win_path out path =
-  match call Cygpath (out,path) with
-  | line :: _ -> String.trim line
-  | _ -> raise @@ System_error "cygpath raised an error. \
-  You probably chose a file with invalid format as your binary."
