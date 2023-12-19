@@ -1,8 +1,10 @@
 This test verify functionalities of `opam-wix`. We do this by using -k option to keep every build artefact for Wix. For test purpose, we will use mock version of package `foo`, `cygcheck` and dlls. Test depends on Wix toolset of version 3.11.
 
-=== Opam version ===
+=== Check system ===
   $ opam --version
   2.1.5
+  $ ocaml -e 'Printf.printf "is cygwin? %b" Sys.cygwin;;'
+  is cygwin? true
 === Opam setup ===
   $ export OPAMNOENVNOTICE=1
   $ export OPAMYES=1
