@@ -3,11 +3,6 @@
  (applies_to basic)
  (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
 
-(cram
- (alias mingw)
- (applies_to basic_mingw)
- (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
-
 (rule
  (target wix311.zip)
  (action

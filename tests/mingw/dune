@@ -1,0 +1,9 @@
+(cram
+ (alias mingw)
+ (applies_to basic)
+ (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
+
+(rule
+ (target wix311.zip)
+ (action
+   (run wget -q -O %{target} https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip)))
