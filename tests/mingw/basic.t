@@ -11,13 +11,12 @@ This test verify functionalities of `opam-wix`. We do this by using -k option to
   $ export OPAMROOT=$PWD/OPAMROOT
   $ export OPAMSTATUSLINE=never
   $ export OPAMVERBOSE=-1
-  $ cat > compile << EOF
+  $ mkdir archive
+  $ cat > archive/compile << EOF
   > #!/bin/sh
   > echo "I'm launching \$(basename \${0}) \$@!"
   > EOF
-  $ chmod +x compile
-  $ tar czf compile.tar.gz compile
-  $ SHA=`openssl sha256 compile.tar.gz | cut -d ' ' -f 2`
+  $ chmod +x archive/compile
 Repo setup
   $ mkdir -p REPO/packages/
   $ cat > REPO/repo << EOF
@@ -33,13 +32,8 @@ Foo package.
   > synopsis: "Foo tool"
   > tags : ["tool" "dummy"]
   > build: [ "sh" "compile" name ]
-  > install: [
-  >  [ "cp" "compile" "%{bin}%/%{name}%" ]
-  > ]
-  > url {
-  >  src: "file://./compile.tar.gz"
-  >  checksum: "sha256=$SHA"
-  > }
+  > install: [ "cp" "compile" "%{bin}%/%{name}%" ]
+  > url { src: "file://./archive" }
   > EOF
   $ cat > REPO/packages/foo/foo.0.2/opam << EOF
   > opam-version: "2.0"
@@ -53,10 +47,7 @@ Foo package.
   >  [ "cp" "compile" "%{bin}%/%{name}%_1" ]
   >  [ "cp" "compile" "%{bin}%/%{name}%_2" ]
   > ]
-  > url {
-  >  src: "file://./compile.tar.gz"
-  >  checksum: "sha256=$SHA"
-  > }
+  > url { src: "file://./archive" }
   > EOF
 Opam setup
   $ mkdir $OPAMROOT
@@ -65,6 +56,8 @@ Opam setup
   
   <><> Fetching repository information ><><><><><><><><><><><><><><><><><><><><><>
   [default] Initialised
+  $ opam option --global depext=false
+  Set to 'false' the field depext in global configuration
   $ opam switch create one --empty
 
 Wix Toolset config.
@@ -73,29 +66,28 @@ Wix Toolset config.
   $ WIX_PATH=$PWD/wix311
 Cygcheck overriding and dlls.
   $ mkdir dlls bins
+  $ cat > bins/cygcheck.exe << EOF
+  > #!/bin/sh
+  > 
+  > cygpath -wa \$1
+  > cygpath -wa $PWD/dlls/dll1.fakedll
+  > cygpath -wa $PWD/dlls/dll2.fakedll
+  > 
+  > EOF
+  $ chmod +x bins/cygcheck.exe
   $ touch dlls/dll1.fakedll dlls/dll2.fakedll 
   $ export PATH=$PWD/bins:$PATH
 ================== Test 1 ====================
 Try to install package with just one binary.
   $ opam install foo.0.1
-  [NOTE] External dependency handling not supported for OS family 'windows'.
-         You can disable this check using 'opam option --global depext=false'
   The following actions will be performed:
     - install foo 0.1
   
   <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-  -> retrieved foo.0.1  (file://./compile.tar.gz)
+  -> retrieved foo.0.1  (file://./archive)
   -> installed foo.0.1
   Done.
-  $ cat > bins/cygcheck << EOF
-  > #!/bin/sh
-  > 
-  > echo "$(cygpath -wa $PWD/OPAMROOT/one/bin/foo)"
-  > echo "$(cygpath -wa $PWD/dlls/dll1.fakedll)"
-  > echo "$(cygpath -wa $PWD/dlls/dll2.fakedll)"
-  > 
-  > EOF
-  $ chmod +x bins/cygcheck
+
   $ opam-wix --keep-wxs --wix-path=$WIX_PATH foo | sed "s/C:\\[^ ]*/$ABSOLUTE_PATH/g"
   
   <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>

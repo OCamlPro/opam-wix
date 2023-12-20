@@ -73,8 +73,20 @@ module Args = struct
     let bin_args = "BINARY ARGUMENT"
   end
 
+  let filename =
+    let conv, pp = OpamArg.filename in
+    (fun filename_arg -> 
+      System.normalize_path filename_arg |> conv),
+    pp
+  
+  let dirname =
+    let conv, pp = OpamArg.dirname in
+    (fun dirname_arg -> 
+      System.normalize_path dirname_arg |> conv),
+    pp
+
   let conffile =
-    value & opt (some OpamArg.filename) None & info ["conf";"c"] ~docv:"PATH" ~docs:Section.bin_args
+    value & opt (some filename) None & info ["conf";"c"] ~docv:"PATH" ~docs:Section.bin_args
     ~doc:"Configuration file for the binary to install. See $(i,Configuration) section"
 
   let package =
@@ -82,7 +94,7 @@ module Args = struct
     ~doc:"The package to create an installer"
 
   let path =
-    value & opt (some OpamArg.filename) None & info ["binary-path";"bp"] ~docs:Section.bin_args ~docv:"PATH" ~doc:
+    value & opt (some filename) None & info ["binary-path";"bp"] ~docs:Section.bin_args ~docv:"PATH" ~doc:
     "The path to the binary file to handle"
 
   let binary =
@@ -94,7 +106,7 @@ module Args = struct
     ~doc:"The version to use for the installer, in an msi format, i.e. numbers and dots, [0-9.]+"
 
   let output_dir =
-    value & opt OpamArg.dirname (OpamFilename.Dir.of_string ".") & info ["o";"output"] ~docv:"DIR" ~doc:
+    value & opt dirname (OpamFilename.Dir.of_string ".") & info ["o";"output"] ~docv:"DIR" ~doc:
     "The output directory where bundle will be stored"
 
   let wix_path =
@@ -320,7 +332,7 @@ let create_bundle cli =
              with option '--binary'."
     in
     OpamConsole.formatted_msg "Path to the selected binary file : %s"
-      (OpamConsole.colorise `bold (OpamFilename.to_string binary_path));
+      (OpamConsole.colorise `bold (System.path_str binary_path));
     OpamConsole.header_msg "Creating installation bundle";
     OpamFilename.with_tmp_dir @@ fun tmp_dir ->
     let dlls = Cygcheck.get_dlls binary_path in
