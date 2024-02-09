@@ -26,9 +26,7 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
       - run: opam install . --deps-only
-      - run: opam exec -- dune build
+      - run: opam exec -- make build
       - run: opam config report
       - run: opam install .
-        if: matrix.os == 'windows-latest'
       - run: opam wix --help
-        if: matrix.os == 'windows-latest'
