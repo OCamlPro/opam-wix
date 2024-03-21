@@ -363,6 +363,80 @@ Testing config file that embeds directory and file and set environment variables
    </Product>
   </Wix>
 
+================== Test 4.1 ====================
+Testing config file that specifies wrong paths to files to embed (absolute, explicit and inexistant paths).
+
+  $ mkdir -p dir1/dir2
+  $ cat > conf_absolute << EOF
+  > opamwix-version: "0.1"
+  > embedded : [
+  >   ["/var/www"]
+  > ]
+  > EOF
+
+  $ cat > conf_explicit << EOF
+  > opamwix-version: "0.1"
+  > embedded : [
+  >   ["./dir1/dir2"]
+  > ]
+  > EOF
+
+  $ cat > conf_wrong << EOF
+  > opamwix-version: "0.1"
+  > embedded : [
+  >   ["dir1/dir3"]
+  > ]
+  > EOF
+
+  $ opam-wix --conf conf_absolute --wix-path=$WIX_PATH foo -b foo_1
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Package foo.0.2 found with binaries:
+    - foo_1
+    - foo_2
+  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/foo_1
+  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
+  Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
+  [WARNING] Path /var/www is absolute or starts with ".." or ".". You should specify alias with absolute path. Skipping...
+  Bundle created.
+  <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Compiling WiX components...
+  Producing final msi...
+  Done.
+  $ opam-wix --conf conf_explicit --wix-path=$WIX_PATH foo -b foo_1
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Package foo.0.2 found with binaries:
+    - foo_1
+    - foo_2
+  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/foo_1
+  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
+  Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
+  [WARNING] Path ./dir1/dir2 is absolute or starts with ".." or ".". You should specify alias with absolute path. Skipping...
+  Bundle created.
+  <><> WiX setup ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Compiling WiX components...
+  Producing final msi...
+  Done.
+  $ opam-wix --conf conf_wrong --wix-path=$WIX_PATH foo -b foo_1
+  
+  <><> Initialising opam ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+  Package foo.0.2 found with binaries:
+    - foo_1
+    - foo_2
+  Path to the selected binary file : $TESTCASE_ROOT/OPAMROOT/one/bin/foo_1
+  <><> Creating installation bundle <><><><><><><><><><><><><><><><><><><><><><><>
+  Getting dlls:
+    - $TESTCASE_ROOT/dlls/dll1.fakedll
+    - $TESTCASE_ROOT/dlls/dll2.fakedll
+  [ERROR] Couldn't find relative path to embed: dir1/dir3.
+  [5]
+
+
 ================== Test 5 ====================
 Version testing
   $ mkdir bar
