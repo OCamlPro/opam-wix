@@ -190,7 +190,6 @@ Configuration
            In this case, variables like %{share}% or %{lib}% could be very usefull. 
            You should just give a list with one string that represents path which
            prefix is the same with your current switch prefix. For example,
-           ["/absolute-path-to-your-prefix/lib/odoc/odoc.cmi"] or just
            ["/%{odoc:lib}%/odoc.cmi"]. Those files would be installed in the
            directory "opam" at the root of installation directory conserving
            entire path (it would be INSTALLDIR/opam/lib/odoc/odoc.cmi for

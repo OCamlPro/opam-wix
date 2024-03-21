@@ -676,7 +676,7 @@ let create_bundle cli =
     The second way is to include any file/directory under opam prefix. In this case, variables like \
     $(i,%{share}%) or $(i,%{lib}%) could be very usefull. You should just give a list with one string that \
     represents path which prefix is the same with your current switch prefix. For example, 
-    $(b,[\"/absolute-path-to-your-prefix/lib/odoc/odoc.cmi\"]) or just $(b,[\"/%{odoc:lib}%/odoc.cmi\"]). \
+    $(b,[\"/%{odoc:lib}%/odoc.cmi\"]). \
     Those files would be installed in the directory \"opam\" at the root of installation directory conserving
     entire path (it would be $(b,INSTALLDIR/opam/lib/odoc/odoc.cmi) for previous example). \
     The last way to specify path is very similar with previous, but it takes into account only external to opam files. \
