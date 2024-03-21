@@ -177,13 +177,31 @@ Configuration
            format.
 
        embedded
-           A list of files paths to include in the installation directory.
-           Each element in this list should be a list of two elements: the
-           first being the destination basename (the name of the file in
-           the installation directory), and the second being the path to the
-           directory itself. For example: ["file.txt" "path/to/file"].
-           Relative paths are resolved by searching files in current
-           directory.
+           A list of files or directories paths to include in the installation
+           directory. There are 3 different ways to specify the paths, each of
+           them implies its own installation place in the target directory:
+           
+           First way to install files is by giving a list of two elements: the
+           first being the destination basename (the name of the file in the
+           installation directory), and the second being the path to the file
+           itself. For example: ["file.txt" "path/to/file"]. 
+           
+           The second way is to include any file/directory under opam prefix. 
+           In this case, variables like %{share}% or %{lib}% could be very usefull. 
+           You should just give a list with one string that represents path which
+           prefix is the same with your current switch prefix. For example,
+           ["/absolute-path-to-your-prefix/lib/odoc/odoc.cmi"] or just
+           ["/%{odoc:lib}%/odoc.cmi"]. Those files would be installed in the
+           directory "opam" at the root of installation directory conserving
+           entire path (it would be INSTALLDIR/opam/lib/odoc/odoc.cmi for
+           previous example). 
+           
+           The last way to specify path is very similar with previous, but it 
+           takes into account only external to opam files. The paths to thoses 
+           files should be relative and implicit. For example, ["dir1/dir2/file.txt"]. 
+           The file (or directory) will be installed in "external" directory under 
+           the root of target installation directory the same way as for opam files 
+           (it would be INSTALLDIR/external/dir1/dir2/file.txt for previous example).
 
        envvar
            A list of environment variables to set/unset in the Windows
