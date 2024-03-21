@@ -401,14 +401,14 @@ let create_bundle cli =
               None
             | _ -> Some (Copy_opam path)
           end
-        | _ when not (Filename.is_relative path || Filename.is_implicit path) ->
-          OpamConsole.warning "Path %s is absolute or contains \"..\". You should specify \
+        | _ when not (Filename.is_relative path && Filename.is_implicit path) ->
+          OpamConsole.warning "Path %s is absolute or starts with \"..\" or \".\". You should specify \
           alias with absolute path. Skipping..." path;
           None
         | _ ->
           if not @@ Sys.file_exists path
           then OpamConsole.error_and_exit `Not_found
-            "Couldn't find embedded %s." (OpamConsole.colorise `bold path);
+            "Couldn't find relative path to embed: %s." (OpamConsole.colorise `bold path);
           Some (Copy_external path))
       conffile.File.Conf.c_embedded
     in
