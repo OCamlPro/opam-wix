@@ -27,6 +27,11 @@ type config = {
   keep_wxs : bool;
 }
 
+type embedded =
+  | Copy_alias of string * string
+  | Copy_external of string
+  | Copy_opam of string
+
 let get_data o filename =
   try Option.get o with
   | Invalid_argument _ -> OpamConsole.error_and_exit `Configuration_error
@@ -321,6 +326,10 @@ let create_bundle cli =
       (OpamStd.Format.itemize OpamFilename.to_string dlls);
     let bundle_dir = OpamFilename.Op.(tmp_dir / OpamPackage.to_string package) in
     OpamFilename.mkdir bundle_dir;
+    let opam_dir = OpamFilename.Op.(bundle_dir / "opam") in
+    let external_dir = OpamFilename.Op.(bundle_dir / "external") in
+    OpamFilename.mkdir opam_dir;
+    OpamFilename.mkdir external_dir;
     List.iter (fun dll -> OpamFilename.copy_in dll bundle_dir) dlls;
     let exe_base =
       let base = OpamFilename.basename binary_path in
@@ -348,15 +357,78 @@ let create_bundle cli =
       F.copy ~src ~dst;
       F.basename dst, dst
     in
-    let emb_dirs, emb_files = List.partition (fun (_,path) ->
-      let path = resolve_path_aux env path in
-      Sys.is_directory path) conffile.File.Conf.c_embedded
+    let copy_include path src_dir dst_dir =
+      let sep = if Sys.cygwin then '/' else '\\' in
+      let dirs = OpamStd.String.split path sep in
+      let rec aux src dst files =
+        match files with
+        | [] -> ()
+        | [ file ] when Sys.is_directory @@
+          Filename.concat (OpamFilename.Dir.to_string src) file ->
+            let src = OpamFilename.Op.(src/file) in
+            let dst = OpamFilename.Op.(dst/file) in
+            OpamFilename.copy_dir ~src ~dst;
+        | [ file ] ->
+          let src' = OpamFilename.Op.(src//file) in
+          OpamFilename.copy_in src' dst;
+        | file :: files ->
+          let src =  OpamFilename.Op.(src/file) in
+          let dst = OpamFilename.Op.(dst/file) in
+          if not @@ OpamFilename.exists_dir dst then OpamFilename.mkdir dst;
+          aux src dst files
+      in
+      aux src_dir dst_dir dirs
     in
-    let embedded_dirs = List.map (fun (name, dirname) ->
-      copy_embedded (module Dir_impl) dirname name) emb_dirs
+    let emb_modes = List.filter_map (fun (path,alias) ->
+        let path = OpamFilter.expand_string env path in
+        let prefix = OpamPath.Switch.root gt.root st.switch |> OpamFilename.Dir.to_string in
+        match alias with
+        | Some alias -> Some (Copy_alias (path, alias))
+        | _ when OpamStd.String.starts_with ~prefix path ->
+          if not @@ Sys.file_exists path then
+            OpamConsole.error_and_exit `Not_found "Couldn't find embedded %s \
+            in switch prefix." (OpamConsole.colorise `bold path);
+          let path =
+            OpamStd.String.remove_prefix
+              ~prefix:Filename.dir_sep @@
+                OpamStd.String.remove_prefix ~prefix path
+          in
+          begin
+            match String.trim path with
+            | "" ->
+              OpamConsole.warning "Specify a subdirectory of opam-prefix to \
+              include in your installtion. Skipping...";
+              None
+            | _ -> Some (Copy_opam path)
+          end
+        | _ when not (Filename.is_relative path && Filename.is_implicit path) ->
+          OpamConsole.warning "Path %s is absolute or starts with \"..\" or \".\". You should specify \
+          alias with absolute path. Skipping..." path;
+          None
+        | _ ->
+          if not @@ Sys.file_exists path
+          then OpamConsole.error_and_exit `Not_found
+            "Couldn't find relative path to embed: %s." (OpamConsole.colorise `bold path);
+          Some (Copy_external path))
+      conffile.File.Conf.c_embedded
     in
-    let embedded_files = List.map (fun (name, filename) ->
-      copy_embedded (module File_impl) filename name) emb_files
+    let (embedded_dirs : (basename * dirname) list),
+        (embedded_files : (basename * filename) list) =
+      List.fold_left (fun (dirs, files) -> function
+          | Copy_alias (dirname, alias) when Sys.is_directory dirname ->
+              let dir =  copy_embedded (module Dir_impl) dirname alias in
+              (dir::dirs, files)
+          | Copy_alias (filename, alias) ->
+            let file = copy_embedded (module File_impl) filename alias in
+            (dirs, file::files)
+          | Copy_opam path ->
+            let prefix = OpamPath.Switch.root gt.root st.switch in
+            copy_include path prefix opam_dir;
+            (dirs, files)
+          | Copy_external path ->
+            copy_include path (OpamFilename.Dir.of_string ".") external_dir;
+            (dirs, files))
+        ([],[]) emb_modes
     in
     OpamConsole.formatted_msg "Bundle created.";
     OpamConsole.header_msg "WiX setup";
@@ -374,6 +446,15 @@ let create_bundle cli =
       ^ "CG"
     in
     let dir_ref basename = basename ^ "_REF" in
+    let additional_embedded_name, additional_embedded_dir =
+      let opam_base, opam_dir = if OpamFilename.dir_is_empty opam_dir
+        then [], []
+        else ["opam"], [ opam_dir ]
+      and external_base, external_dir = if OpamFilename.dir_is_empty external_dir
+        then [], []
+        else ["external"], [ external_dir ]
+      in (opam_base @ external_base), (opam_dir @ external_dir)
+    in
     let module Info = struct
       open OpamStd.Option.Op
       let path =
@@ -428,10 +509,10 @@ let create_bundle cli =
             var, content)
           conffile.File.Conf.c_envvar
       let embedded_dirs =
-          List.map (fun (base,_) ->
-            let base = OpamFilename.Base.to_string base in
-            base, component_group base, dir_ref base)
-          embedded_dirs
+          List.map (fun base ->
+              base, component_group base, dir_ref base)
+            ((List.map (fun (b,_)-> OpamFilename.Base.to_string b) embedded_dirs)
+            @ additional_embedded_name )
       let embedded_files =
         List.map (fun (base,_) ->
           OpamFilename.Base.to_string base)
@@ -454,7 +535,10 @@ let create_bundle cli =
         heat_var = Format.sprintf "var.%sDir" basename
       } in
       System.Heat, heat
-      ) embedded_dirs;
+      ) (embedded_dirs @
+        List.map (fun dir ->
+            OpamFilename.basename_dir dir,dir)
+          additional_embedded_dir);
     let wxs = Wix.main_wxs (module Info) in
     let name = Filename.chop_extension (OpamFilename.Base.to_string exe_base) in
     let (addwxs1,content1),(addwxs2,content2) =
@@ -470,20 +554,24 @@ let create_bundle cli =
     let main_path = OpamFilename.Op.(tmp_dir // (name ^ ".wxs")) in
     Wix.write_wxs (OpamFilename.to_string main_path) wxs;
     OpamConsole.formatted_msg "Compiling WiX components...\n";
-    System.call_list @@ List.map (fun (basename, _) ->
-      let basename = OpamFilename.Base.to_string basename in
-      let candle_defines = [ Format.sprintf "%sDir=%s\\%s"
-        basename (OpamPackage.to_string package) basename ]
-      in
-      let prefix = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename in
-      let candle = System.{
-        candle_wix_path = wix_path;
-        candle_files = One (prefix ^ ".wxs" |> cyg_win_path `WinAbs,
-          prefix ^ ".wixobj" |> cyg_win_path `WinAbs);
-        candle_defines
-      } in
-      System.Candle, candle
-      ) embedded_dirs;
+    let embedded_dirs = (List.map (fun (b,_) ->
+        OpamFilename.Base.to_string b)
+      embedded_dirs)
+      @ additional_embedded_name
+    in
+    System.call_list @@ List.map (fun basename ->
+        let candle_defines = [ Format.sprintf "%sDir=%s\\%s"
+          basename (OpamPackage.to_string package) basename ]
+        in
+        let prefix = Filename.concat (OpamFilename.Dir.to_string tmp_dir) basename in
+        let candle = System.{
+          candle_wix_path = wix_path;
+          candle_files = One (prefix ^ ".wxs" |> cyg_win_path `WinAbs,
+            prefix ^ ".wixobj" |> cyg_win_path `WinAbs);
+          candle_defines
+        } in
+        System.Candle, candle
+      ) embedded_dirs ;
     let wxs_files =
       (OpamFilename.to_string main_path |> System.cyg_win_path `WinAbs)
         :: additional_wxs
@@ -518,9 +606,9 @@ let create_bundle cli =
       Filename.concat (OpamFilename.Dir.to_string tmp_dir) addwxs2_obj
         |> System.cyg_win_path `WinAbs;
     ] @
-    List.map (fun (base,_) ->
+    List.map (fun base ->
       Filename.concat (OpamFilename.Dir.to_string tmp_dir)
-        (OpamFilename.Base.to_string base) ^ ".wixobj"
+        base ^ ".wixobj"
       |> System.cyg_win_path `WinAbs ) embedded_dirs
     in
     let light = System.{
@@ -580,9 +668,21 @@ let create_bundle cli =
     `I ("$(i,binary-path, binary)","These are the same as their respective arguments.");
     `I ("$(i,wix_version)","The version to use to generate the MSI, in a dot separated number format.");
     `I ("$(i,embedded)", "A list of files or directories paths to include in the installation directory. \
-    Each element in this list should be a list of two elements: the first being the destination \
+    There are 3 different ways to specify the paths, each of them implies its own installation place in \
+    the target directory: \
+    First way to install files is by giving a list of two elements: the first being the destination \
     basename (the name of the file in the installation directory), and the second being the \
-    path to the directory itself. For example: $(i,[\"file.txt\" \"path/to/file\"]).");
+    path to the file itself. For example: $(b,[\"file.txt\" \"path/to/file\"]). \
+    The second way is to include any file/directory under opam prefix. In this case, variables like \
+    $(i,%{share}%) or $(i,%{lib}%) could be very usefull. You should just give a list with one string that \
+    represents path which prefix is the same with your current switch prefix. For example, \
+    $(b,[\"/absolute-path-to-your-prefix/lib/odoc/odoc.cmi\"]) or just $(b,[\"/%{odoc:lib}%/odoc.cmi\"]). \
+    Those files would be installed in the directory \"opam\" at the root of installation directory conserving \
+    entire path (it would be $(b,INSTALLDIR/opam/lib/odoc/odoc.cmi) for previous example). \
+    The last way to specify path is very similar with previous, but it takes into account only external to opam files. \
+    The paths to thoses files should be relative and implicit. For example, $(b,[\"dir1/dir2/file.txt\"]). \
+    The file (or directory) will be installed in \"external\" directory under the root of target installation directory \
+    the same way as for opam files (it would be $(b,INSTALLDIR/external/dir1/dir2/file.txt) for previous example).");
     `I ("$(i,envvar)", "A list of environment variables to set/unset in the Windows Terminal during \
     install/uninstall. Each element in this list should be a list of two elements: the name and the \
     value of the variable. Basenames defined with $(b,embedded) field could be used as variables, to reference \

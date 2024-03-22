@@ -31,10 +31,10 @@ module Conf: sig
     c_binary_path: string option; (* Path to binary to install *)
     c_binary: string option; (* Binary name to install *)
     c_wix_version: Wix.Version.t option; (* Wix compatible version to use for install *)
-    c_embedded : (string * string) list; (* Files/directories to embed in installation directory *)
+    c_embedded : (string * string option) list; (* Files/directories to embed in installation directory *)
     c_envvar: (string * string) list; (* Environement variables to set in Windows Terminal on installation *)
   }
-
+ 
   include IO_FILE with type t := t
 
 end

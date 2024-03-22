@@ -24,7 +24,7 @@ module Syntax = struct
     c_binary_path: string option;
     c_binary: string option;
     c_wix_version: Wix.Version.t option;
-    c_embedded : (string * string) list;
+    c_embedded : (string * string option) list;
     c_envvar: (string * string) list;
   }
 
@@ -41,6 +41,19 @@ module Syntax = struct
     c_embedded = [];
     c_envvar = [];
   }
+
+  let embedded_pp : (OpamParserTypes.FullPos.value, string * string option) OpamPp.t =
+    let from_list ~pos = function
+      | [ path ] -> path, None
+      | [ path; alias ] -> path, Some alias
+      | _ -> OpamPp.bad_format ~pos
+        "embedded declaration should contain 1 (path) or 2 (path and alias) elements."
+    in
+    let to_list = function
+      | (path, Some alias) -> [ path; alias ]
+      | (path, None) -> [ path ]
+    in
+    OpamPp.Op.(OpamFormat.V.map_list OpamFormat.V.string -| OpamPp.pp from_list to_list)
 
   let fields = [
     "opamwix-version", OpamPp.ppacc
@@ -71,8 +84,7 @@ module Syntax = struct
       (OpamFormat.V.string -| OpamPp.of_module "wix_version" (module Wix.Version));
     "embedded", OpamPp.ppacc
       (fun file t -> { t with c_embedded = file }) (fun t -> t.c_embedded)
-      (OpamFormat.V.map_list ~depth:2
-        (OpamFormat.V.map_pair OpamFormat.V.string OpamFormat.V.string));
+      (OpamFormat.V.map_list ~depth:2 embedded_pp);
     "envvar", OpamPp.ppacc
       (fun c_envvar t -> { t with c_envvar }) (fun t -> t.c_envvar)
       (OpamFormat.V.map_list ~depth:2
