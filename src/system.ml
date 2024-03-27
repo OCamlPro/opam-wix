@@ -142,6 +142,36 @@ let call_list : type a. (a command * a) list -> unit =
       (Format.sprintf "%s" (OpamProcess.string_of_result result))
     | _ -> ()
 
+let cyg_win_path out path =
+  match call Cygpath (out,path) with
+  | line :: _ -> String.trim line
+  | _ -> raise @@ System_error "cygpath raised an error. \
+    You probably chose a file with invalid format as your binary."
+
+let normalize_path = 
+  if Sys.cygwin
+  then cyg_win_path `CygAbs
+  else cyg_win_path `WinAbs
+
+(* NOTE: under mingw OpamFilename.to_string returns false path "C:\home\..". For instant, try to use hackish method to fix this *)
+let path_dir_str path =
+  if Sys.cygwin
+  then OpamFilename.Dir.to_string path
+  else
+    let path = OpamFilename.Dir.to_string path in
+    String.split_on_char ':' path 
+    |> List.tl |> String.concat ":" |> String.split_on_char '\\'
+    |> String.concat "/"
+
+let path_str path =
+  if Sys.cygwin
+  then OpamFilename.to_string path
+  else
+    let path = OpamFilename.to_string path in
+    String.split_on_char ':' path 
+    |> List.tl |> String.concat ":" |> String.split_on_char '\\'
+    |> String.concat "/"
+
 let check_avalable_commands wix_path =
   let wix_bin_exists bin =
     Sys.file_exists @@ Filename.concat wix_path bin
@@ -157,8 +187,3 @@ let check_avalable_commands wix_path =
     raise @@ System_error
       (Format.sprintf "Wix binaries couldn't be found in %s directory." wix_path)
 
-let cyg_win_path out path =
-  match call Cygpath (out,path) with
-  | line :: _ -> String.trim line
-  | _ -> raise @@ System_error "cygpath raised an error. \
-  You probably chose a file with invalid format as your binary."
