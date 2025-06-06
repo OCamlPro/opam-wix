@@ -82,7 +82,7 @@ val call_unit : 'a command -> 'a -> unit
 val call_list : ('a command * 'a) list -> unit
 
 (** Checks if all handled commands are available system-widely. *)
-val check_avalable_commands : string -> unit
+val check_available_commands : string -> unit
 
 (** Performs path translations between Windows and Cygwin. See [System.cygpath_out] for more details. *)
 val cyg_win_path : cygpath_out -> string -> string

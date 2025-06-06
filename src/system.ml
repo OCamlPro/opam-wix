@@ -148,7 +148,7 @@ let cyg_win_path out path =
   | _ -> raise @@ System_error "cygpath raised an error. \
     You probably chose a file with invalid format as your binary."
 
-let normalize_path = 
+let normalize_path =
   if Sys.cygwin
   then cyg_win_path `CygAbs
   else cyg_win_path `WinAbs
@@ -159,7 +159,7 @@ let path_dir_str path =
   then OpamFilename.Dir.to_string path
   else
     let path = OpamFilename.Dir.to_string path in
-    String.split_on_char ':' path 
+    String.split_on_char ':' path
     |> List.tl |> String.concat ":" |> String.split_on_char '\\'
     |> String.concat "/"
 
@@ -168,11 +168,11 @@ let path_str path =
   then OpamFilename.to_string path
   else
     let path = OpamFilename.to_string path in
-    String.split_on_char ':' path 
+    String.split_on_char ':' path
     |> List.tl |> String.concat ":" |> String.split_on_char '\\'
     |> String.concat "/"
 
-let check_avalable_commands wix_path =
+let check_available_commands wix_path =
   let wix_bin_exists bin =
     Sys.file_exists @@ Filename.concat wix_path bin
   in

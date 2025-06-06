@@ -8,13 +8,62 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Markup
-
-type wxs = signal list
+type wxs = Markup.signal list
 
 type component_group = string
 
 type directory_ref = string
+
+
+
+(** Information module used to generated main wxs document. *)
+type info = {
+  (* Path to the bundle containing all required files. Every relative file path will be concatenated to this path *)
+  path : string;
+
+  (* Package name used as product name. Deduced from opam file *)
+  package_name : string;
+
+  (* Package version used as part of product name. Deduced from opam file *)
+  package_version : string;
+
+  (* Package description. Deduced from opam file *)
+  description : string;
+
+  (* Product manufacturer. Deduced from field {i maintainer} in opam file *)
+  manufacturer : string;
+
+  (* Package UID. Should be equal for every version of given package. If not specified,
+      generated new UID *)
+  package_guid : string option;
+
+  (* Package tags. Deduced from opam file *)
+  tags : string list;
+
+  (* Filename of bundled .exe binary. *)
+  exec_file : string;
+
+  (* Filenames for all bundled DLLs. *)
+  dlls : string list;
+
+  (* Icon filename. *)
+  icon_file : string;
+
+  (* Dialog bmp filename. *)
+  dlg_bmp_file : string;
+
+  (* Banner bmp filename. *)
+  banner_bmp_file : string;
+
+  (* Embedded directories information (reference another wxs file) *)
+  embedded_dirs : (string * component_group * directory_ref) list;
+
+  (* Embedded files *)
+  embedded_files : string list;
+
+  (* Environement variables to set/unset in Windows terminal on install/uninstall respectively. *)
+  environment : (string * string) list;
+}
 
 module Version = struct
 type t = string
@@ -31,7 +80,7 @@ end
 
 
 let xml_declaration = {
-  version = "1.0";
+  Markup.version = "1.0";
   encoding = Some "windows-1252";
   standalone = None;
 }
@@ -47,24 +96,6 @@ let mode_package_exe_version p e v = System.Exec (p, e, (Some v))
 let mode_package_exe p e = System.Exec (p, e, None)
 let mode_rand = System.Rand
 
-module type INFO = sig
-  val path : string
-  val package_name : string
-  val package_version : string
-  val description : string
-  val manufacturer : string
-  val package_guid : string option
-  val tags : string list
-  val exec_file : string
-  val dlls : string list
-  val icon_file : string
-  val dlg_bmp_file : string
-  val banner_bmp_file : string
-  val embedded_dirs : (string * component_group * directory_ref) list
-  val embedded_files : string list
-  val environement : (string * string) list
-end
-
 let normalize_id =
   String.map (function c ->
     match c with
@@ -72,7 +103,7 @@ let normalize_id =
     | _ -> '_'
     )
 
-let component component_name content : signal list =
+let component component_name content : Markup.signal list =
   match content with
   | [] -> []
   | _ ->
@@ -84,32 +115,32 @@ let component component_name content : signal list =
     in
     component :: (content @ [`End_element])
 
-let main_wxs (module Info : INFO) : wxs =
-  let path p = Filename.concat Info.path p in
-  let exec_name = Filename.basename Info.exec_file |> Filename.chop_extension in
+let main_wxs info : wxs =
+  let path p = Filename.concat info.path p in
+  let exec_name = Filename.basename info.exec_file |> Filename.chop_extension in
   [
   `Xml xml_declaration;
   `Start_element ((name "Wix"), [name "xmlns", "http://schemas.microsoft.com/wix/2006/wi"]);
 
     `Start_element ((name "Product"), [
-      name "Name", Info.package_name ^ "." ^ exec_name;
-      name "Id", get_uuid @@ mode_package_exe_version Info.package_name exec_name Info.package_version;
+      name "Name", info.package_name ^ "." ^ exec_name;
+      name "Id", get_uuid @@ mode_package_exe_version info.package_name exec_name info.package_version;
       name "UpgradeCode", begin
-        match Info.package_guid with
+        match info.package_guid with
         | Some guid -> guid
-        | None -> get_uuid (mode_package_exe Info.package_name exec_name)
+        | None -> get_uuid (mode_package_exe info.package_name exec_name)
       end;
       name "Language", "1033";
       name "Codepage", "1252";
-      name "Version",  Info.package_version;
-      name "Manufacturer", Info.manufacturer
+      name "Version",  info.package_version;
+      name "Manufacturer", info.manufacturer
     ]);
 
       `Start_element ((name "Package"), [
         name "Id", "*";
-        name "Keywords", String.concat " " Info.tags;
-        name "Description", Info.description;
-        name "Manufacturer", Info.manufacturer;
+        name "Keywords", String.concat " " info.tags;
+        name "Description", info.description;
+        name "Manufacturer", info.manufacturer;
         name "InstallerVersion", "100";
         name "Languages", "1033";
         name "Compressed", "yes";
@@ -136,23 +167,23 @@ let main_wxs (module Info : INFO) : wxs =
 
           `Start_element ((name "Directory"), [
             name "Id", "INSTALLDIR";
-            name "Name", Info.package_name ^ "." ^ Info.package_version ^ "-" ^ exec_name
+            name "Name", info.package_name ^ "." ^ info.package_version ^ "-" ^ exec_name
           ]);
           ] @
             component "MainExecutable" [
               `Start_element ((name "File"), [
-                name "Id", normalize_id Info.icon_file;
-                name "Name", Info.icon_file;
+                name "Id", normalize_id info.icon_file;
+                name "Name", info.icon_file;
                 name "DiskId", "1";
-                name "Source", path Info.icon_file;
+                name "Source", path info.icon_file;
               ]);
               `End_element;
 
               `Start_element ((name "File"), [
-                name "Id", normalize_id Info.exec_file;
-                name "Name", Info.exec_file;
+                name "Id", normalize_id info.exec_file;
+                name "Name", info.exec_file;
                 name "DiskId", "1";
-                name "Source", path Info.exec_file;
+                name "Source", path info.exec_file;
                 name "KeyPath", "yes"
               ]);
               `End_element;
@@ -171,7 +202,7 @@ let main_wxs (module Info : INFO) : wxs =
                   name "System", "yes"
                 ]);
                 `End_element])
-                Info.environement
+                info.environment
               |> List.flatten)
             ) @
             component "SetEnviromentPath" [
@@ -200,7 +231,7 @@ let main_wxs (module Info : INFO) : wxs =
                   name "Source", path dll;
                 ]);
                 `End_element])
-                Info.dlls
+                info.dlls
               |> List.flatten
             ) @
             component "Embedded" (
@@ -212,7 +243,7 @@ let main_wxs (module Info : INFO) : wxs =
                   name "Source", path base;
                 ]);
                 `End_element])
-                Info.embedded_files
+                info.embedded_files
               |> List.flatten
             ) @
             (List.map (fun (dirname, _, dir_ref) -> [
@@ -221,7 +252,7 @@ let main_wxs (module Info : INFO) : wxs =
                 name "Name", dirname;
               ]);
               `End_element])
-              Info.embedded_dirs
+              info.embedded_dirs
             |> List.flatten)
             @ [
           `End_element;
@@ -235,7 +266,7 @@ let main_wxs (module Info : INFO) : wxs =
 
           `Start_element ((name "Directory"), [
             name "Id", "ProgramMenuDir";
-            name "Name", Info.package_name ^ "." ^ Info.package_version ^ "-" ^ exec_name
+            name "Name", info.package_name ^ "." ^ info.package_version ^ "-" ^ exec_name
           ]);
           ] @
             component "ProgramMenuDir" [
@@ -270,11 +301,11 @@ let main_wxs (module Info : INFO) : wxs =
             `End_element;
 
             `Start_element ((name "Shortcut"), [
-              name "Id", "desktop_" ^ normalize_id Info.exec_file;
+              name "Id", "desktop_" ^ normalize_id info.exec_file;
               name "Name", exec_name;
               name "WorkingDirectory", "INSTALLDIR";
-              name "Icon", Info.icon_file;
-              name "Target", "[INSTALLDIR]" ^ Info.exec_file
+              name "Icon", info.icon_file;
+              name "Target", "[INSTALLDIR]" ^ info.exec_file
             ]);
             `End_element;
 
@@ -308,11 +339,11 @@ let main_wxs (module Info : INFO) : wxs =
             `End_element;
 
             `Start_element ((name "Shortcut"), [
-              name "Id", "startmenu_" ^ normalize_id Info.exec_file;
+              name "Id", "startmenu_" ^ normalize_id info.exec_file;
               name "Name", exec_name;
               name "WorkingDirectory", "INSTALLDIR";
-              name "Icon", Info.icon_file;
-              name "Target", "[INSTALLDIR]" ^ Info.exec_file
+              name "Icon", info.icon_file;
+              name "Target", "[INSTALLDIR]" ^ info.exec_file
             ]);
             `End_element;
 
@@ -349,8 +380,8 @@ let main_wxs (module Info : INFO) : wxs =
 
     `Start_element ((name "Feature"), [
       name "Id", "Complete";
-      name "Title",  Info.package_name ^ "." ^ Info.package_version ^ "-" ^ exec_name;
-      name "Description", Info.package_name ^ "." ^ exec_name ^ " complete install.";
+      name "Title",  info.package_name ^ "." ^ info.package_version ^ "-" ^ exec_name;
+      name "Description", info.package_name ^ "." ^ exec_name ^ " complete install.";
       name "Level", "1"
     ]);
 
@@ -361,7 +392,7 @@ let main_wxs (module Info : INFO) : wxs =
       `End_element;
       ] @
 
-     (match Info.dlls with
+     (match info.dlls with
       | [] -> []
       | _ -> [
         `Start_element ((name "ComponentRef"), [ name "Id", "Dlls" ]);
@@ -373,10 +404,10 @@ let main_wxs (module Info : INFO) : wxs =
           name "Id", cg;
         ]);
         `End_element])
-        Info.embedded_dirs
+        info.embedded_dirs
       |> List.flatten) @
 
-      (match Info.embedded_files with
+      (match info.embedded_files with
       | [] -> []
       | _ -> [
         `Start_element ((name "ComponentRef"), [ name "Id", "Embedded" ]);
@@ -417,14 +448,14 @@ let main_wxs (module Info : INFO) : wxs =
     `End_element;
 
     `Start_element ((name "Icon"), [
-      name "Id", normalize_id Info.icon_file;
-      name "SourceFile", path Info.icon_file;
+      name "Id", normalize_id info.icon_file;
+      name "SourceFile", path info.icon_file;
     ]);
     `End_element;
 
     `Start_element ((name "Property"), [
       name "Id", "ARPPRODUCTICON";
-      name "Value", normalize_id Info.icon_file
+      name "Value", normalize_id info.icon_file
     ]);
     `End_element;
 
@@ -436,13 +467,13 @@ let main_wxs (module Info : INFO) : wxs =
 
     `Start_element ((name "WixVariable"), [
       name "Id", "WixUIBannerBmp";
-      name "Value", path Info.banner_bmp_file
+      name "Value", path info.banner_bmp_file
     ]);
     `End_element;
 
     `Start_element ((name "WixVariable"), [
       name "Id", "WixUIDialogBmp";
-      name "Value", path Info.dlg_bmp_file
+      name "Value", path info.dlg_bmp_file
     ]);
     `End_element;
 
@@ -456,6 +487,6 @@ let main_wxs (module Info : INFO) : wxs =
 
 let write_wxs path wxs  =
   let oc = open_out path in
-  let stream = pretty_print (of_list wxs) in
-  write_xml stream |> to_channel oc;
+  let stream = Markup.pretty_print (Markup.of_list wxs) in
+  Markup.write_xml stream |> Markup.to_channel oc;
   close_out oc

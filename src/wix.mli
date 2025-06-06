@@ -25,57 +25,57 @@ module Version: sig
 end
 
 (** Information module used to generated main wxs document. *)
-module type INFO = sig
-    (** Path to the bundle containing all required files. Every relative file path will be concatenated to this path *)
-    val path : string
+type info = {
+  (* Path to the bundle containing all required files. Every relative file path will be concatenated to this path *)
+  path : string;
 
-    (** Package name used as product name. Deduced from opam file *)
-    val package_name : string
+  (* Package name used as product name. Deduced from opam file *)
+  package_name : string;
 
-    (** Package version used as part of product name. Deduced from opam file *)
-    val package_version : string
+  (* Package version used as part of product name. Deduced from opam file *)
+  package_version : string;
 
-    (** Package description. Deduced from opam file *)
-    val description : string
+  (* Package description. Deduced from opam file *)
+  description : string;
 
-    (** Product manufacturer. Deduced from field {i maintainer} in opam file *)
-    val manufacturer : string
+  (* Product manufacturer. Deduced from field {i maintainer} in opam file *)
+  manufacturer : string;
 
-    (** Package UID. Should be equal for every version of given package. If not specified,
-        generated new UID *)
-    val package_guid : string option
+  (* Package UID. Should be equal for every version of given package. If not specified,
+      generated new UID *)
+  package_guid : string option;
 
-    (** Package tags. Deduced from opam file *)
-    val tags : string list
+  (* Package tags. Deduced from opam file *)
+  tags : string list;
 
-    (** Filename of bundled .exe binary. *)
-    val exec_file : string
+  (* Filename of bundled .exe binary. *)
+  exec_file : string;
 
-    (** Filenames for all bundled DLLs. *)
-    val dlls : string list
+  (* Filenames for all bundled DLLs. *)
+  dlls : string list;
 
-    (** Icon filename. *)
-    val icon_file : string
+  (* Icon filename. *)
+  icon_file : string;
 
-    (** Dialog bmp filename. *)
-    val dlg_bmp_file : string
+  (* Dialog bmp filename. *)
+  dlg_bmp_file : string;
 
-    (** Banner bmp filename. *)
-    val banner_bmp_file : string
+  (* Banner bmp filename. *)
+  banner_bmp_file : string;
 
-    (** Embedded directories information (reference another wxs file) *)
-    val embedded_dirs : (string * component_group * directory_ref) list
+  (* Embedded directories information (reference another wxs file) *)
+  embedded_dirs : (string * component_group * directory_ref) list;
 
-    (** Embedded files *)
-    val embedded_files : string list
+  (* Embedded files *)
+  embedded_files : string list;
 
-    (** Environement variables to set/unset in Windows terminal on install/uninstall respectively. *)
-    val environement : (string * string) list
-end
+  (* Environement variables to set/unset in Windows terminal on install/uninstall respectively. *)
+  environment : (string * string) list;
+}
 
 (** [main_wxs (module Info)] produces content for main Wix source file. Input represents a
     module containing set of value required for main wxs generation. *)
-val main_wxs : (module INFO) -> wxs
+val main_wxs : info -> wxs
 
 (** Write a wxs file content to a .wxs file with the specified path. *)
 val write_wxs : string -> wxs -> unit
