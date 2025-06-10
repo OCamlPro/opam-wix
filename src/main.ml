@@ -93,8 +93,8 @@ module Args = struct
     value & flag & info ["keep-wxs"] ~doc:"Keep Wix source files."
 
   let term =
-    let apply conf package path binary wix_version output_dir wix_path package_guid icon_file dlg_bmp ban_bmp keep_wxs =
-      { conf; package; path; binary; wix_version; output_dir; wix_path; package_guid; icon_file; dlg_bmp; ban_bmp; keep_wxs }
+    let apply conf_file conf_package conf_path conf_binary conf_wix_version conf_output_dir conf_wix_path conf_package_guid conf_icon_file conf_dlg_bmp conf_ban_bmp conf_keep_wxs =
+      { conf_file ; conf_package; conf_path; conf_binary; conf_wix_version; conf_output_dir; conf_wix_path; conf_package_guid; conf_icon_file; conf_dlg_bmp; conf_ban_bmp; conf_keep_wxs }
     in
     Term.(const apply $ conffile $ package $ path $ binary $ wix_version $ output_dir $ wix_path $ package_guid $ icon_file $
       dlg_bmp $ ban_bmp $ keep_wxs)
@@ -165,8 +165,12 @@ let create_bundle cli =
                             and set $(i,DOC) environment variable to the $(i,<install-dir>/mydoc) absolute path.");
       ]
     in
+    let create_bundle global_options conf () =
+      Opam_frontend.create_bundle cli global_options conf
+        Wix_backend.create_bundle
+    in
     OpamArg.mk_command ~cli OpamArg.cli_original "opam-wix" ~doc ~man
-      Term.(const (Wix_backend.create_bundle cli)
+      Term.(const create_bundle
             $ OpamArg.global_options cli
             $ Args.term)
 

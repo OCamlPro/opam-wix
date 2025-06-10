@@ -27,50 +27,50 @@ end
 (** Information module used to generated main wxs document. *)
 type info = {
   (* Path to the bundle containing all required files. Every relative file path will be concatenated to this path *)
-  path : string;
+  wix_path : string;
 
   (* Package name used as product name. Deduced from opam file *)
-  package_name : string;
+  wix_name : string;
 
   (* Package version used as part of product name. Deduced from opam file *)
-  package_version : string;
+  wix_version : string;
 
   (* Package description. Deduced from opam file *)
-  description : string;
+  wix_description : string;
 
   (* Product manufacturer. Deduced from field {i maintainer} in opam file *)
-  manufacturer : string;
+  wix_manufacturer : string;
 
   (* Package UID. Should be equal for every version of given package. If not specified,
       generated new UID *)
-  package_guid : string option;
+  wix_guid : string option;
 
   (* Package tags. Deduced from opam file *)
-  tags : string list;
+  wix_tags : string list;
 
   (* Filename of bundled .exe binary. *)
-  exec_file : string;
+  wix_exec_file : string;
 
   (* Filenames for all bundled DLLs. *)
-  dlls : string list;
+  wix_dlls : string list;
 
   (* Icon filename. *)
-  icon_file : string;
+  wix_icon_file : string;
 
   (* Dialog bmp filename. *)
-  dlg_bmp_file : string;
+  wix_dlg_bmp_file : string;
 
   (* Banner bmp filename. *)
-  banner_bmp_file : string;
+  wix_banner_bmp_file : string;
 
   (* Embedded directories information (reference another wxs file) *)
-  embedded_dirs : (string * component_group * directory_ref) list;
+  wix_embedded_dirs : (string * component_group * directory_ref) list;
 
   (* Embedded files *)
-  embedded_files : string list;
+  wix_embedded_files : string list;
 
   (* Environement variables to set/unset in Windows terminal on install/uninstall respectively. *)
-  environment : (string * string) list;
+  wix_environment : (string * string) list;
 }
 
 (** [main_wxs (module Info)] produces content for main Wix source file. Input represents a
