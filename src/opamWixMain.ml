@@ -447,12 +447,12 @@ let create_bundle cli =
     in
     let dir_ref basename = basename ^ "_REF" in
     let additional_embedded_name, additional_embedded_dir =
-      let opam_base, opam_dir = if OpamFilename.dir_is_empty opam_dir
-        then [], []
-        else ["opam"], [ opam_dir ]
-      and external_base, external_dir = if OpamFilename.dir_is_empty external_dir
-        then [], []
-        else ["external"], [ external_dir ]
+      let opam_base, opam_dir = match OpamFilename.dir_is_empty opam_dir with
+        | None | Some (true) -> [], []
+        | Some (false) -> ["opam"], [ opam_dir ]
+      and external_base, external_dir = match OpamFilename.dir_is_empty external_dir with
+        | None | Some (true) -> [], []
+        | Some (false) -> ["external"], [ external_dir ]
       in (opam_base @ external_base), (opam_dir @ external_dir)
     in
     let module Info = struct

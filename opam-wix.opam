@@ -17,8 +17,8 @@ depends: [
   "cmdliner" {<= "1.1.1"}
   "markup"
   "crunch"
-  "opam-client" {> "2.0" & < "2.2" }
-  "opam-format"
+  "opam-client" {>= "2.4" & = opam-version}
+  "opam-format" {>= "2.4" & = opam-version}
 ]
 build: [
     "dune"
