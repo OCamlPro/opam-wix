@@ -86,3 +86,12 @@ val check_avalable_commands : string -> unit
 
 (** Performs path translations between Windows and Cygwin. See [System.cygpath_out] for more details. *)
 val cyg_win_path : cygpath_out -> string -> string
+
+(** Resolve absolute path in the current system's format (Cygwin or Win32). *)
+val normalize_path : string -> string
+
+(** Convert safely path from [OpamFilename.t] *)
+val path_str : OpamFilename.t -> string
+
+(** Convert safely path from [OpamFilename.Dir.t] *)
+val path_dir_str : OpamFilename.Dir.t -> string
