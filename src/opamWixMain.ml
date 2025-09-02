@@ -98,7 +98,8 @@ module Args = struct
     "The output directory where bundle will be stored"
 
   let wix_path =
-    value & opt string "/cygdrive/c/Program Files (x86)/WiX Toolset v3.11/bin"
+    let prefix = if Sys.cygwin then "/cygdrive" else "" in
+    value & opt string (prefix ^ "/c/Program Files (x86)/WiX Toolset v3.11/bin")
     & info ["wix-path"] ~docv:"DIR" ~doc:
     "The path where WIX tools are stored. The path should be full and should use linux format path (with $(i,/) as delimiter) \
     since presence of such binaries are checked with $(b,which) tool that accepts only this type of path."
@@ -447,12 +448,12 @@ let create_bundle cli =
     in
     let dir_ref basename = basename ^ "_REF" in
     let additional_embedded_name, additional_embedded_dir =
-      let opam_base, opam_dir = if OpamFilename.dir_is_empty opam_dir
-        then [], []
-        else ["opam"], [ opam_dir ]
-      and external_base, external_dir = if OpamFilename.dir_is_empty external_dir
-        then [], []
-        else ["external"], [ external_dir ]
+      let opam_base, opam_dir = match OpamFilename.dir_is_empty opam_dir with
+        | None | Some (true) -> [], []
+        | Some (false) -> ["opam"], [ opam_dir ]
+      and external_base, external_dir = match OpamFilename.dir_is_empty external_dir with
+        | None | Some (true) -> [], []
+        | Some (false) -> ["external"], [ external_dir ]
       in (opam_base @ external_base), (opam_dir @ external_dir)
     in
     let module Info = struct
@@ -700,15 +701,5 @@ let () =
   OpamSystem.init ();
   (* OpamArg.preinit_opam_envvariables (); *)
   OpamCliMain.main_catch_all @@ fun () ->
-  (*
-    for cmdliner 1.2.0
-
   let term, info = create_bundle (OpamCLIVersion.default, `Default) in
   exit @@ Cmd.eval ~catch:false (Cmd.v info term)
-  *)
-  let terminfo = create_bundle (OpamCLIVersion.current, `Default) in
-  match Term.eval ~catch:false terminfo with
-  | exception System.System_error err ->
-    OpamConsole.error_and_exit `Aborted "%s" err
-  | `Error _ -> exit 1
-  | _ -> exit 0

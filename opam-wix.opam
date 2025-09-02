@@ -7,18 +7,18 @@ authors: [
     "Mohamed Hernouf"
 ]
 tags: ["wix" "msi" "windows" "cygwin"]
-license: "GPLv3"
+license: "GPL-3.0-only"
 homepage: "https://github.com/OCamlPro/opam-wix"
 bug-reports: "https://github.com/OCamlPro/opam-wix/issues"
 available: os = "win32" | os = "cygwin"
 depends: [
   "ocaml" {build & >= "4.14.0" & < "5.0.0"}
   "dune" {build & >= "2.8.5"}
-  "cmdliner" {<= "1.1.1"}
+  "cmdliner" {>= "1.3"}
   "markup"
-  "crunch"
-  "opam-client" {> "2.0" & < "2.2" }
-  "opam-format"
+  "crunch" {>= "3.3.1"}
+  "opam-client" {>= "2.4" & = opam-version}
+  "opam-format" {>= "2.4" & = opam-version}
 ]
 build: [
     "dune"
