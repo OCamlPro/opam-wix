@@ -701,15 +701,5 @@ let () =
   OpamSystem.init ();
   (* OpamArg.preinit_opam_envvariables (); *)
   OpamCliMain.main_catch_all @@ fun () ->
-  (*
-    for cmdliner 1.2.0
-
   let term, info = create_bundle (OpamCLIVersion.default, `Default) in
   exit @@ Cmd.eval ~catch:false (Cmd.v info term)
-  *)
-  let terminfo = create_bundle (OpamCLIVersion.current, `Default) in
-  match Term.eval ~catch:false terminfo with
-  | exception System.System_error err ->
-    OpamConsole.error_and_exit `Aborted "%s" err
-  | `Error _ -> exit 1
-  | _ -> exit 0
