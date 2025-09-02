@@ -98,7 +98,8 @@ module Args = struct
     "The output directory where bundle will be stored"
 
   let wix_path =
-    value & opt string "/cygdrive/c/Program Files (x86)/WiX Toolset v3.11/bin"
+    let prefix = if Sys.cygwin then "/cygdrive" else "" in
+    value & opt string (prefix ^ "/c/Program Files (x86)/WiX Toolset v3.11/bin")
     & info ["wix-path"] ~docv:"DIR" ~doc:
     "The path where WIX tools are stored. The path should be full and should use linux format path (with $(i,/) as delimiter) \
     since presence of such binaries are checked with $(b,which) tool that accepts only this type of path."
