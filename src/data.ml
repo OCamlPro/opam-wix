@@ -19,9 +19,9 @@ let get_data o filename =
 (** Data directory with crunched content. Every pair value within represents filename and its content. *)
 
 let get basename subdir =
-  let filename = Filename.concat subdir basename in
+  let filename = String.concat "/" [subdir; basename] in
   basename,
-  get_data (DataDir.read filename) (Filename.concat "data" filename)
+  get_data (DataDir.read filename) (String.concat "/" ["data"; filename])
 
 module IMAGES = struct
   let logo = get "logo.ico" "images"
