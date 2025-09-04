@@ -9,7 +9,7 @@
 ;------------------------------------------------------------------------;
 
 (executable
- (name opamWixMain)
+ (name main)
  (public_name opam-wix)
  (modes (native exe))
  (flags -w A-4-5-21-33-44-45-70)

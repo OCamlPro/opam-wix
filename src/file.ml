@@ -8,7 +8,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open OpamFile
 open OpamTypes
 open OpamPp.Op
 
@@ -103,6 +102,6 @@ end
 
 module Conf = struct
   include Syntax
-  include SyntaxFile(Syntax)
+  include OpamFile.SyntaxFile(Syntax)
 end
 

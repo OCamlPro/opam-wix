@@ -82,7 +82,7 @@ val call_unit : 'a command -> 'a -> unit
 val call_list : ('a command * 'a) list -> unit
 
 (** Checks if all handled commands are available system-widely. *)
-val check_avalable_commands : string -> unit
+val check_available_commands : string -> unit
 
 (** Performs path translations between Windows and Cygwin. See [System.cygpath_out] for more details. *)
 val cyg_win_path : cygpath_out -> string -> string
@@ -95,3 +95,21 @@ val path_str : OpamFilename.t -> string
 
 (** Convert safely path from [OpamFilename.Dir.t] *)
 val path_dir_str : OpamFilename.Dir.t -> string
+
+module type FILE_INTF = sig
+  type t
+  val name : string
+  val to_string : t -> string
+  val of_string : string -> t
+  val (/) : OpamTypes.dirname -> string -> t
+  val copy : src:t -> dst:t -> unit
+  val exists : t -> bool
+  val basename : t -> OpamTypes.basename
+end
+
+module DIR_IMPL : FILE_INTF with type t = OpamFilename.Dir.t
+module FILE_IMPL : FILE_INTF with type t = OpamFilename.t
+
+val resolve_path : OpamFilter.env ->
+                   (module FILE_INTF with type t = 'a) -> string -> 'a
+val resolve_file_path : OpamFilter.env -> string -> OpamFilename.t

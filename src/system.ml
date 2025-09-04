@@ -148,7 +148,7 @@ let cyg_win_path out path =
   | _ -> raise @@ System_error "cygpath raised an error. \
     You probably chose a file with invalid format as your binary."
 
-let normalize_path = 
+let normalize_path =
   if Sys.cygwin
   then cyg_win_path `CygAbs
   else cyg_win_path `WinAbs
@@ -159,7 +159,7 @@ let path_dir_str path =
   then OpamFilename.Dir.to_string path
   else
     let path = OpamFilename.Dir.to_string path in
-    String.split_on_char ':' path 
+    String.split_on_char ':' path
     |> List.tl |> String.concat ":" |> String.split_on_char '\\'
     |> String.concat "/"
 
@@ -168,11 +168,11 @@ let path_str path =
   then OpamFilename.to_string path
   else
     let path = OpamFilename.to_string path in
-    String.split_on_char ':' path 
+    String.split_on_char ':' path
     |> List.tl |> String.concat ":" |> String.split_on_char '\\'
     |> String.concat "/"
 
-let check_avalable_commands wix_path =
+let check_available_commands wix_path =
   let wix_bin_exists bin =
     Sys.file_exists @@ Filename.concat wix_path bin
   in
@@ -187,3 +187,53 @@ let check_avalable_commands wix_path =
     raise @@ System_error
       (Format.sprintf "Wix binaries couldn't be found in %s directory." wix_path)
 
+open OpamTypes
+
+module type FILE_INTF = sig
+  type t
+  val name : string
+  val to_string : t -> string
+  val of_string : string -> t
+  val (/) : dirname -> string -> t
+  val copy : src:t -> dst:t -> unit
+  val exists : t -> bool
+  val basename : t -> basename
+end
+
+module DIR_IMPL : FILE_INTF
+  with type t = OpamFilename.Dir.t = struct
+  include OpamFilename.Dir
+  let name = "directory"
+  let (/) = OpamFilename.Op.(/)
+  let copy = OpamFilename.copy_dir
+  let exists = OpamFilename.exists_dir
+  let basename = OpamFilename.basename_dir
+end
+
+module FILE_IMPL : FILE_INTF
+  with type t = OpamFilename.t = struct
+  include OpamFilename
+  let name = "file"
+  let (/) = OpamFilename.Op.(//)
+  let copy = OpamFilename.copy
+  let exists = OpamFilename.exists
+  let basename = OpamFilename.basename
+end
+
+let resolve_path_aux env path =
+  let expanded_path = OpamFilter.expand_string env path in
+  if not @@ Filename.is_relative expanded_path
+  then expanded_path
+  else begin
+    OpamConsole.warning
+      "Specified in config path %s is relative. Searching in current directory..."
+        (OpamConsole.colorise `bold path);
+    Filename.concat (Sys.getcwd ()) expanded_path
+  end
+
+let resolve_path (type a) env
+  (module F : FILE_INTF with type t = a) path =
+  F.of_string @@ resolve_path_aux env path
+
+let resolve_file_path env path =
+  resolve_path env (module FILE_IMPL) path
