@@ -8,7 +8,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open OpamTypes
 open OpamPp.Op
 
 let conf_default = OpamFilename.of_string "opam-wix.conf"

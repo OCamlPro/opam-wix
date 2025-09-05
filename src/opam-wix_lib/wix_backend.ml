@@ -8,9 +8,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Cmdliner
-open OpamTypes
-open OpamStateTypes
 open Types
 
 
@@ -21,7 +18,6 @@ let create_bundle conf desc ~tmp_dir =
   in
   let dir_ref basename = basename ^ "_REF" in
   let info =
-    let open OpamStd.Option.Op in
     {
       Wix.wix_path =
         Filename.basename @@ OpamFilename.Dir.to_string desc.package_dir ;
@@ -32,12 +28,12 @@ let create_bundle conf desc ~tmp_dir =
       wix_guid = conf.conf_package_guid ;
       wix_tags = desc.package_tags ;
       wix_exec_file = desc.package_exec_file ;
-      wix_dlls = desc.package_dlls ; 
+      wix_dlls = desc.package_dlls ;
       wix_icon_file = desc.package_icon_file ;
       wix_dlg_bmp_file = desc.package_dlg_bmp_file ;
       wix_banner_bmp_file = desc.package_banner_bmp_file ;
       wix_environment = desc.package_environment ;
-      wix_embedded_dirs = 
+      wix_embedded_dirs =
         List.map (fun base ->
             base, component_group base, dir_ref base)
           ((List.map (fun (b,_)-> OpamFilename.Base.to_string b)
