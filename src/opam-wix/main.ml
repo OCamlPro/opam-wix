@@ -168,7 +168,7 @@ let create_bundle cli =
       ]
     in
     let create_bundle global_options conf () =
-      Opam_frontend.create_bundle cli global_options conf
+      Opam_frontend.with_install_bundle cli global_options conf
         Wix_backend.create_bundle
     in
     OpamArg.mk_command ~cli OpamArg.cli_original "opam-wix" ~doc ~man

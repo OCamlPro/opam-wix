@@ -8,7 +8,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-val create_bundle :
+val with_install_bundle :
   OpamCLIVersion.Sourced.t ->
   OpamArg.global_options ->
   Types.config ->
