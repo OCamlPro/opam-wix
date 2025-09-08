@@ -8,9 +8,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Cmdliner
 open OpamTypes
-open OpamStateTypes
 
 type config = {
   conf_file: OpamFilename.t option;

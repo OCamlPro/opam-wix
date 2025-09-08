@@ -11,6 +11,8 @@
 open Cmdliner
 open OpamTypes
 open OpamStateTypes
+
+open Opam_wix
 open Types
 
 module Args = struct

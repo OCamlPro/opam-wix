@@ -8,12 +8,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Cmdliner
 open OpamTypes
 open OpamStateTypes
 open Types
-
-
 
 let normalize_conf env conf file =
   let open File.Conf in
