@@ -381,8 +381,6 @@ let with_opam_and_conf cli global_options conf f =
     let file = OpamStd.Option.default File.conf_default conf.conf_file in
     File.Conf.safe_read (OpamFile.make file)
   in
-  let wix_path = System.normalize_path conf.conf_wix_path in
-  System.check_available_commands wix_path;
   OpamConsole.header_msg "Initialising opam";
   OpamArg.apply_global_options cli global_options;
   OpamGlobalState.with_ `Lock_read
