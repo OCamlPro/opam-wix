@@ -1,6 +1,7 @@
 (cram
  (alias cygwin)
  (applies_to basic)
+ (enabled_if (not (= %{os_type} "Unix")))
  (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
 
 (rule

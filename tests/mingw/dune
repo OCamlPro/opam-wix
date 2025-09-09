@@ -1,5 +1,6 @@
 (cram
  (alias mingw)
+ (enabled_if (not (= %{os_type} "Unix")))
  (applies_to basic)
  (deps %{bin:opam-wix} %{bin:cygpath} wix311.zip))
 
