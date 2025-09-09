@@ -65,6 +65,7 @@ type cygpath_out = [
 type _ command =
   | Which : string command  (** {b which} command, to check programs availability *)
   | Cygcheck: string command   (** {b cygcheck} command to get binaries' DLLs paths *)
+  | Ldd : string command (** {b ldd} command to get binaries .so paths *)
   | Cygpath : (cygpath_out * string) command (** {b cygpath} command to translate path between cygwin and windows and vice-versa *)
   | Uuidgen : uuid_mode command  (** {b uuidgen} command to create a new UUID value, based on seed. *)
   | Candle : candle command  (** {b candle.exe} command as a part of WiX toolset to compile Wix source files. *)

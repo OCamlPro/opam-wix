@@ -43,6 +43,7 @@ type cygpath_out = [ `Win | `WinAbs | `Cyg | `CygAbs ]
 type _ command =
   | Which : string command
   | Cygcheck : string command
+  | Ldd : string command
   | Cygpath : (cygpath_out * string) command
   | Uuidgen : uuid_mode command
   | Candle : candle command
@@ -57,6 +58,8 @@ let call_inner : type a. a command -> a -> string * string list =
     "which", [ path ]
   | Cygcheck, path ->
     "cygcheck", [ path ]
+  | Ldd, path ->
+    "ldd", [ path ]
   | Cygpath, (out, path) ->
     let opts = match out with
       | `Win -> "-w"
@@ -168,13 +171,13 @@ let path_dir_str path =
     |> String.concat "/"
 
 let path_str path =
-  if Sys.cygwin
-  then OpamFilename.to_string path
-  else
+  if Sys.win32 then
     let path = OpamFilename.to_string path in
     String.split_on_char ':' path
     |> List.tl |> String.concat ":" |> String.split_on_char '\\'
     |> String.concat "/"
+  else
+    OpamFilename.to_string path
 
 let check_available_commands wix_path =
   let wix_bin_exists bin =

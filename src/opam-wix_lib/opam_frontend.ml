@@ -71,8 +71,9 @@ let binaries changes =
   List.filter_map
     (fun name ->
       let prefix, suffix =
-        if Sys.cygwin
-        then "bin/","" else "bin\\",".exe"
+        if Sys.win32
+        then "bin\\",".exe"
+        else "bin/",""
       in
       let bin =
         OpamStd.String.remove_prefix ~prefix name
@@ -82,7 +83,7 @@ let binaries changes =
       else Some bin)
     changes
 
-let binary_path ~conf ~bin_path ~binaries package =
+let binary_path ~conf ~opam_bin_folder ~binaries package =
   match conf.conf_path, conf.conf_binary with
   | Some _, Some _ ->
     OpamConsole.error_and_exit `Bad_arguments
@@ -103,7 +104,7 @@ let binary_path ~conf ~bin_path ~binaries package =
   | None, Some binary ->
     if List.exists (String.equal binary) binaries then
       let binary = if Sys.cygwin then binary else binary ^ ".exe" in
-      OpamFilename.Op.(bin_path // binary)
+      OpamFilename.Op.(opam_bin_folder // binary)
     else
       OpamConsole.error_and_exit `Not_found
         "Binary %s not found in opam installation"
@@ -111,8 +112,8 @@ let binary_path ~conf ~bin_path ~binaries package =
   | None, None ->
     match binaries with
     | [bin] ->
-      let bin = if Sys.cygwin then bin else bin ^ ".exe" in
-      OpamFilename.Op.(bin_path // bin)
+      let bin = if Sys.win32 then bin ^ ".exe" else bin in
+      OpamFilename.Op.(opam_bin_folder // bin)
     | [] ->
       OpamConsole.error_and_exit `Not_found
         "No binary file found at package installation %s"
@@ -275,11 +276,11 @@ let create_bundle ~global_state ~switch_state ~env ~tmp_dir conf conffile =
   OpamConsole.formatted_msg "Package %s found with binaries:\n%s"
     (OpamConsole.colorise `bold (OpamPackage.to_string package))
     (OpamStd.Format.itemize (fun x -> x) binaries);
-  let bin_path =
+  let opam_bin_folder =
     OpamPath.Switch.bin
       global_state.root switch_state.switch switch_state.switch_config
   in
-  let binary_path = binary_path ~conf ~bin_path ~binaries package in
+  let binary_path = binary_path ~conf ~opam_bin_folder ~binaries package in
   OpamConsole.formatted_msg "Path to the selected binary file : %s"
     (OpamConsole.colorise `bold (System.path_str binary_path));
   OpamConsole.header_msg "Creating installation bundle";
@@ -289,8 +290,8 @@ let create_bundle ~global_state ~switch_state ~env ~tmp_dir conf conffile =
   let external_dir = OpamFilename.Op.(bundle_dir / "external") in
   OpamFilename.mkdir opam_dir;
   OpamFilename.mkdir external_dir;
-  let dlls = Cygcheck.get_dlls binary_path in
-  OpamConsole.formatted_msg "Getting dlls:\n%s"
+  let dlls = Shared_libraries.get binary_path in
+  OpamConsole.formatted_msg "Getting dlls/so:\n%s"
     (OpamStd.Format.itemize OpamFilename.to_string dlls);
   List.iter (fun dll -> OpamFilename.copy_in dll bundle_dir) dlls;
   let exe_base =
