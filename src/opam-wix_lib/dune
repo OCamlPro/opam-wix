@@ -11,7 +11,9 @@
 (library
  (name opam_wix)
  (public_name opam-wix.lib)
- (libraries opam-format opam-client markup))
+ (libraries opam-format opam-client markup yojson)
+ (preprocess
+  (pps ppx_deriving_yojson)))
 
 (rule
  (target dataDir.ml)

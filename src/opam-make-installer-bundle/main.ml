@@ -108,9 +108,13 @@ let create_bundle cli =
   let doc = "Extract package installer bundle" in
   let create_bundle global_options conf dst () =
     Opam_frontend.with_install_bundle cli global_options conf
-      (fun _conf desc ~tmp_dir:_ ->
-         let bundle_dir = desc.package_dir in
-         OpamFilename.move_dir ~src:bundle_dir ~dst)
+      (fun _conf installer_conf ~tmp_dir:_ ->
+         let bundle_dir = installer_conf.package_dir in
+         OpamFilename.move_dir ~src:bundle_dir ~dst;
+         let conf_path =
+           OpamFilename.Op.(dst // "installer-config.json")
+         in
+         Installer_config.save installer_conf conf_path)
   in
   OpamArg.mk_command ~cli OpamArg.cli_original "opam-make-installer-bundle"
     ~doc ~man:[]

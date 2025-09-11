@@ -354,6 +354,7 @@ let create_bundle ~global_state ~switch_state ~env ~tmp_dir conf conffile =
       OpamFilename.basename data |> OpamFilename.Base.to_string
     | None -> name
   in
+  let open Installer_config in
   {
     package_dir = bundle_dir ;
     package_name = OpamPackage.Name.to_string (OpamPackage.name package) ;

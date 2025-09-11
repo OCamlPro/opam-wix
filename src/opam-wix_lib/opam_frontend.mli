@@ -13,6 +13,6 @@ val with_install_bundle :
   OpamArg.global_options ->
   Types.config ->
   (Types.config ->
-   Types.description ->
+   Installer_config.t ->
    tmp_dir:OpamFilename.Dir.t -> unit) ->
   unit
