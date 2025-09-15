@@ -1,8 +1,6 @@
-(lang dune 3.2)
-
 ;------------------------------------------------------------------------;
 ;                                                                        ;
-;    Copyright 2023 OCamlPro                                             ;
+;    Copyright 2025 OCamlPro                                             ;
 ;                                                                        ;
 ;  All rights reserved. This file is distributed under the terms of the  ;
 ;  GNU Lesser General Public License version 2.1, with the special       ;
@@ -10,5 +8,9 @@
 ;                                                                        ;
 ;------------------------------------------------------------------------;
 
-(name opam-wix)
-(cram enable)
+(library
+ (name test)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect))
+ (libraries opam-wix.lib opam-format))

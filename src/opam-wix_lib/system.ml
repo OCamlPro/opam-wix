@@ -43,6 +43,7 @@ type cygpath_out = [ `Win | `WinAbs | `Cyg | `CygAbs ]
 type _ command =
   | Which : string command
   | Cygcheck : string command
+  | Ldd : string command
   | Cygpath : (cygpath_out * string) command
   | Uuidgen : uuid_mode command
   | Candle : candle command
@@ -57,6 +58,8 @@ let call_inner : type a. a command -> a -> string * string list =
     "which", [ path ]
   | Cygcheck, path ->
     "cygcheck", [ path ]
+  | Ldd, path ->
+    "ldd", [ path ]
   | Cygpath, (out, path) ->
     let opts = match out with
       | `Win -> "-w"
@@ -148,10 +151,14 @@ let cyg_win_path out path =
   | _ -> raise @@ System_error "cygpath raised an error. \
     You probably chose a file with invalid format as your binary."
 
-let normalize_path =
-  if Sys.cygwin
-  then cyg_win_path `CygAbs
-  else cyg_win_path `WinAbs
+let normalize_path path =
+  match Sys.os_type with
+  | "Unix" -> path
+  | "Win32" -> cyg_win_path `WinAbs path
+  | "Cygwin" -> cyg_win_path `CygAbs path
+  | _ ->
+    let msg = Printf.sprintf "Unsupported os type %s" Sys.os_type in
+    raise (System_error msg)
 
 (* NOTE: under mingw OpamFilename.to_string returns false path "C:\home\..". For instant, try to use hackish method to fix this *)
 let path_dir_str path =
@@ -164,13 +171,13 @@ let path_dir_str path =
     |> String.concat "/"
 
 let path_str path =
-  if Sys.cygwin
-  then OpamFilename.to_string path
-  else
+  if Sys.win32 then
     let path = OpamFilename.to_string path in
     String.split_on_char ':' path
     |> List.tl |> String.concat ":" |> String.split_on_char '\\'
     |> String.concat "/"
+  else
+    OpamFilename.to_string path
 
 let check_available_commands wix_path =
   let wix_bin_exists bin =

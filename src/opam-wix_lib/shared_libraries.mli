@@ -1,6 +1,6 @@
 (**************************************************************************)
 (*                                                                        *)
-(*    Copyright 2023 OCamlPro                                             *)
+(*    Copyright 2025 OCamlPro                                             *)
 (*                                                                        *)
 (*  All rights reserved. This file is distributed under the terms of the  *)
 (*  GNU Lesser General Public License version 2.1, with the special       *)
@@ -8,11 +8,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-val with_install_bundle :
-  OpamCLIVersion.Sourced.t ->
-  OpamArg.global_options ->
-  Types.config ->
-  (Types.config ->
-   Installer_config.t ->
-   tmp_dir:OpamFilename.Dir.t -> unit) ->
-  unit
+(** [get binary] returns the list of system shared libraries required
+    by [binary]. *)
+val get : OpamFilename.t -> OpamFilename.t list

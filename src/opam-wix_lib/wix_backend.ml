@@ -11,7 +11,9 @@
 open Types
 
 
-let create_bundle conf desc ~tmp_dir =
+let create_bundle conf (desc : Installer_config.t) ~tmp_dir =
+  let wix_path = System.normalize_path conf.conf_wix_path in
+  System.check_available_commands wix_path;
   OpamConsole.header_msg "WiX setup";
   let component_group basename =
     String.capitalize_ascii basename ^ "CG"
