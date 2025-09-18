@@ -3,4 +3,4 @@
  (public_name opam-make-installer)
  (modes
   (native exe))
- (libraries cmdliner opam-format opam-client opam-wix.lib))
+ (libraries cmdliner opam-format opam-client opam-wix.lib opam_wix_cli))
