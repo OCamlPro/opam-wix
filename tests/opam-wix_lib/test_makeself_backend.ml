@@ -90,7 +90,7 @@ let%expect_test "uninstall_script: one binary" =
     echo "- /opt/aaa"
     echo "- /usr/local/bin/aaa-command"
     printf "Proceed? [y/N] "
-    read "$ans"
+    read ans
     case "$ans" in
       [Yy]*) ;;
       *)

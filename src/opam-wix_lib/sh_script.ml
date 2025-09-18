@@ -87,7 +87,7 @@ let rec pp_sh_command ~indent fmtr command =
     fpf "fi"
   | Prompt {question; varname} ->
     fpf {|printf "%s "|} question;
-    fpf {|read "$%s"|} varname
+    fpf {|read %s|} varname
   | Case {varname; cases} ->
     fpf {|case "$%s" in|} varname;
     List.iter (pp_sh_case ~indent:(indent + 2) fmtr) cases;
