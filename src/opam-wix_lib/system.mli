@@ -80,6 +80,7 @@ type _ command =
   | Light : light command  (** {b light.exe} command as a part of WiX toolset to link all compiled Wix source files in MSI. *)
   | Heat : heat command  (** {b heat.exe} command as a part of WiX toolset to generate WiX source for specified directory. *)
   | Makeself : makeself command (** {b makeself.sh} command to generate linux installer. *)
+  | Chmod : (int * OpamFilename.t) command
 
 (** Calls given command with its arguments and parses output, line by line. Raises [System_error]
     with command's output when command exits with non-zero exit status. *)

@@ -145,6 +145,7 @@ let create_installer
   let uninstall_sh = OpamFilename.Op.(bundle_dir // uninstall_script_name) in
   Sh_script.save install_script install_sh;
   Sh_script.save uninstall_script uninstall_sh;
+  System.call_unit Chmod (755, install_sh);
   let args : System.makeself =
     { archive_dir = bundle_dir
     ; installer

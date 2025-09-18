@@ -57,6 +57,7 @@ type _ command =
   | Light : light command
   | Heat : heat command
   | Makeself : makeself command
+  | Chmod : (int * OpamFilename.t) command
 
 exception System_error of string
 
@@ -68,6 +69,8 @@ let call_inner : type a. a command -> a -> string * string list =
     "cygcheck", [ path ]
   | Ldd, path ->
     "ldd", [ path ]
+  | Chmod, (perm, file) ->
+    "chmod", [ string_of_int perm; OpamFilename.to_string file ]
   | Cygpath, (out, path) ->
     let opts = match out with
       | `Win -> "-w"
