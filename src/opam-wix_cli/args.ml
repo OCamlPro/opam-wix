@@ -10,7 +10,6 @@
 
 open Cmdliner
 open Cmdliner.Arg
-
 open Opam_wix
 open Opam_wix.Types
 
@@ -134,3 +133,34 @@ let config =
   Term.(
     const apply $ conffile $ package $ path $ binary $ wix_version $ output_dir
     $ wix_path $ package_guid $ icon_file $ dlg_bmp $ ban_bmp $ keep_wxs)
+
+type backend = Wix | Makeself
+type 'a choice = Autodetect | Forced of 'a option
+
+let backend =
+  let open Arg in
+  let parse s =
+    match String.lowercase_ascii s with
+    | "wix" -> Ok (Forced (Some Wix))
+    | "makeself" -> Ok (Forced (Some Makeself))
+    | "none" -> Ok (Forced None)
+    | _ -> Error (Format.sprintf "Unsupported backend %S" s)
+  in
+  let print fmt t =
+    match t with
+    | Autodetect -> Fmt.pf fmt "autodetect"
+    | Forced None -> Fmt.pf fmt "none"
+    | Forced (Some Wix) -> Fmt.pf fmt "wix"
+    | Forced (Some Makeself) -> Fmt.pf fmt "makeself"
+  in
+  let docv = "BACKEND" in
+  let conv = Cmdliner.Arg.conv' ~docv (parse, print) in
+  let doc =
+    "($(b,wix)|$(b,makeself)|$(b,none)). Overwrites the default $(docv). \
+     Without this option, it is determined from the system: WiX to produce msi \
+     installers on Windows, makeself to produce self extracting/installing \
+     .run archives on Unix. When $(b,none), disables backend, making the \
+     command generate a bundle with an installer config that can later be fed \
+     into any of the existing backends."
+  in
+  value & opt conv Autodetect & info [ "backend" ] ~doc ~docv

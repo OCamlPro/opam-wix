@@ -11,7 +11,11 @@
 val opam_filename : OpamFilename.t Cmdliner.Arg.conv
 val opam_dirname : OpamFilename.Dir.t Cmdliner.Arg.conv
 
-(** Cmdliner term evaluating to the config compiled from relevant
-    CLI args and options.
-    Note that this consumes the first positional argument. *)
 val config : Opam_wix.Types.config Cmdliner.Term.t
+(** Cmdliner term evaluating to the config compiled from relevant CLI args and
+    options. Note that this consumes the first positional argument. *)
+
+type backend = Wix | Makeself
+type 'a choice = Autodetect | Forced of 'a option
+
+val backend : backend choice Cmdliner.Term.t
