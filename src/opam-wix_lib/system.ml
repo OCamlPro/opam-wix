@@ -38,6 +38,13 @@ type heat = {
   heat_var : string
 }
 
+type makeself = {
+  archive_dir : OpamFilename.Dir.t;
+  installer : OpamFilename.t;
+  description : string;
+  startup_script : string
+}
+
 type cygpath_out = [ `Win | `WinAbs | `Cyg | `CygAbs ]
 
 type _ command =
@@ -49,6 +56,8 @@ type _ command =
   | Candle : candle command
   | Light : light command
   | Heat : heat command
+  | Makeself : makeself command
+  | Chmod : (int * OpamFilename.t) command
 
 exception System_error of string
 
@@ -60,6 +69,8 @@ let call_inner : type a. a command -> a -> string * string list =
     "cygcheck", [ path ]
   | Ldd, path ->
     "ldd", [ path ]
+  | Chmod, (perm, file) ->
+    "chmod", [ string_of_int perm; OpamFilename.to_string file ]
   | Cygpath, (out, path) ->
     let opts = match out with
       | `Win -> "-w"
@@ -107,6 +118,16 @@ let call_inner : type a. a command -> a -> string * string list =
         "-var"; heat_var]
     in
     heat, args
+  | Makeself, { archive_dir; installer; description; startup_script } ->
+    let makeself = "makeself.sh" in
+    let args =
+      [ OpamFilename.Dir.to_string archive_dir
+      ; OpamFilename.to_string installer
+      ; Printf.sprintf "%S" description
+      ; startup_script
+      ]
+    in
+    makeself, args
 
 let gen_command_tmp_dir cmd =
   Printf.sprintf "%s-%06x" (Filename.basename cmd) (Random.int 0xFFFFFF)

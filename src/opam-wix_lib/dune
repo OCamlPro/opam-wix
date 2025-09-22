@@ -11,7 +11,7 @@
 (library
  (name opam_wix)
  (public_name opam-wix.lib)
- (libraries opam-format opam-client markup yojson)
+ (libraries fmt opam-format opam-client markup unix yojson)
  (preprocess
   (pps ppx_deriving_yojson)))
 

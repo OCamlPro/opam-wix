@@ -53,6 +53,14 @@ type heat = {
   heat_var : string
 }
 
+(** makeself script arguments *)
+type makeself = {
+  archive_dir : OpamFilename.Dir.t;
+  installer : OpamFilename.t;
+  description : string;
+  startup_script : string
+}
+
 (** Expected output path type *)
 type cygpath_out = [
   | `Win (** Path Windows *)
@@ -71,6 +79,8 @@ type _ command =
   | Candle : candle command  (** {b candle.exe} command as a part of WiX toolset to compile Wix source files. *)
   | Light : light command  (** {b light.exe} command as a part of WiX toolset to link all compiled Wix source files in MSI. *)
   | Heat : heat command  (** {b heat.exe} command as a part of WiX toolset to generate WiX source for specified directory. *)
+  | Makeself : makeself command (** {b makeself.sh} command to generate linux installer. *)
+  | Chmod : (int * OpamFilename.t) command
 
 (** Calls given command with its arguments and parses output, line by line. Raises [System_error]
     with command's output when command exits with non-zero exit status. *)

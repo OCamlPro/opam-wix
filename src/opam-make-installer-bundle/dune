@@ -1,6 +1,0 @@
-(executable
- (name main)
- (public_name opam-make-installer-bundle)
- (modes
-  (native exe))
- (libraries cmdliner opam-format opam-client opam-wix.lib))
