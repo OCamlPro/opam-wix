@@ -56,7 +56,7 @@ type info = {
   wix_banner_bmp_file : string;
 
   (* Embedded directories information (reference another wxs file) *)
-  wix_embedded_dirs : (string * component_group * directory_ref) list;
+  wix_embedded_dirs : (string * component_group * directory_ref * string) list;
 
   (* Embedded files *)
   wix_embedded_files : string list;
@@ -103,15 +103,20 @@ let normalize_id =
     | _ -> '_'
     )
 
-let component component_name content : Markup.signal list =
+let component component_name ?condition content : Markup.signal list =
   match content with
   | [] -> []
   | _ ->
+    let cond =
+      match condition with
+      | None -> []
+      | Some c -> [ name "Condition", c ]
+    in
     let component =
       `Start_element ((name "Component"), [
         name "Id", component_name;
         name "Guid", get_uuid mode_rand
-      ]);
+      ] @ cond);
     in
     component :: (content @ [`End_element])
 
@@ -121,31 +126,35 @@ let main_wxs info : wxs =
                   |> Filename.chop_extension in
   [
     `Xml xml_declaration;
-    `Start_element ((name "Wix"), [name "xmlns", "http://schemas.microsoft.com/wix/2006/wi"]);
+    `Start_element ((name "Wix"), [name "xmlns", "http://wixtoolset.org/schemas/v4/wxs" ;
+                                   name "xmlns:ui", "http://wixtoolset.org/schemas/v4/wxs/ui" ;
+                                   name "xmlns:util", "http://wixtoolset.org/schemas/v4/wxs/util" ]);
 
-    `Start_element ((name "Product"), [
+    `Start_element ((name "Package"), [
+        (* FIXME: Wix6 allows to give a descriptive package id instead and
+           build the ProductCode and UpgradeCode GUIDs from it: so should
+           use that (but then we have to provide this id as input) *)
+                      name "Manufacturer", info.wix_manufacturer;
                       name "Name", info.wix_name ^ "." ^ exec_name;
-                      name "Id", get_uuid @@ mode_package_exe_version info.wix_name exec_name info.wix_version;
+                      name "Version",  info.wix_version;
+                      name "Language", "1033";
+                      name "Codepage", "1252";
+                      name "InstallerVersion", "100";
+                      name "Compressed", "yes";
+                      name "UpgradeStrategy", "majorUpgrade";
+                      name "ProductCode", get_uuid @@ mode_package_exe_version info.wix_name exec_name info.wix_version;
                       name "UpgradeCode", begin
                           match info.wix_guid with
                           | Some guid -> guid
                           | None -> get_uuid (mode_package_exe info.wix_name exec_name)
-                        end;
-                      name "Language", "1033";
-                      name "Codepage", "1252";
-                      name "Version",  info.wix_version;
-                      name "Manufacturer", info.wix_manufacturer
+                        end
       ]);
 
-    `Start_element ((name "Package"), [
-                      name "Id", "*";
-                      name "Keywords", String.concat " " info.wix_tags;
-                      name "Description", info.wix_description;
+    `Start_element ((name "SummaryInformation"), [
                       name "Manufacturer", info.wix_manufacturer;
-                      name "InstallerVersion", "100";
-                      name "Languages", "1033";
-                      name "Compressed", "yes";
-                      name "SummaryCodepage", "1252"
+                      name "Description", info.wix_description;
+                      name "Keywords", String.concat " " info.wix_tags;
+                      name "Codepage", "1252"
       ]);
     `End_element;
 
@@ -156,14 +165,8 @@ let main_wxs info : wxs =
       ]);
     `End_element;
 
-    `Start_element ((name "Directory"), [
-                      name "Id", "TARGETDIR";
-                      name "Name", "SourceDir"
-      ]);
-
-    `Start_element ((name "Directory"), [
-                      name "Id", "ProgramFilesFolder";
-                      name "Name", "PFiles"
+    `Start_element ((name "StandardDirectory"), [
+                      name "Id", "ProgramFilesFolder"
       ]);
 
     `Start_element ((name "Directory"), [
@@ -206,11 +209,8 @@ let main_wxs info : wxs =
                 info.wix_environment
               |> List.flatten)
         ) @
-        component "SetEnviromentPath" [
+        component "SetEnviromentPath" ~condition:"ADDTOPATH" [
             `Start_element ((name "CreateFolder"), []);
-            `End_element;
-            `Start_element ((name "Condition"), []);
-            `Text ["ADDTOPATH"];
             `End_element;
             `Start_element ((name "Environment"), [
                               name "Id", "PATH";
@@ -247,7 +247,7 @@ let main_wxs info : wxs =
                   info.wix_embedded_files
                 |> List.flatten
               ) @
-              (List.map (fun (dirname, _, dir_ref) -> [
+              (List.map (fun (dirname, _, dir_ref, _) -> [
                      `Start_element ((name "Directory"), [
                                        name "Id", dir_ref;
                                        name "Name", dirname;
@@ -260,9 +260,8 @@ let main_wxs info : wxs =
 
                 `End_element;
 
-                `Start_element ((name "Directory"), [
-                                  name "Id", "ProgramMenuFolder";
-                                  name "Name", "Programs";
+                `Start_element ((name "StandardDirectory"), [
+                                  name "Id", "ProgramMenuFolder"
                   ]);
 
                 `Start_element ((name "Directory"), [
@@ -292,15 +291,11 @@ let main_wxs info : wxs =
 
                   `End_element;
 
-                  `Start_element ((name "Directory"), [
-                                    name "Id", "DesktopFolder";
-                                    name "Name", "Desktop";
+                  `Start_element ((name "StandardDirectory"), [
+                                    name "Id", "DesktopFolder"
                     ]);
                 ] @
-                  component "ApplicationShortcutDektop" [
-                      `Start_element ((name "Condition"),[]);
-                      `Text ["INSTALLSHORTCUTDESKTOP"];
-                      `End_element;
+                  component "ApplicationShortcutDektop" ~condition:"INSTALLSHORTCUTDESKTOP" [
 
                       `Start_element ((name "Shortcut"), [
                                         name "Id", "desktop_" ^ normalize_id info.wix_exec_file;
@@ -331,14 +326,11 @@ let main_wxs info : wxs =
 
                     `End_element;
 
-                    `Start_element ((name "Directory"), [
-                                      name "Id", "StartMenuFolder";
+                    `Start_element ((name "StandardDirectory"), [
+                                      name "Id", "StartMenuFolder"
                       ]);
                   ] @
-                    component "ApplicationShortcutStartMenu" [
-                        `Start_element ((name "Condition"),[]);
-                        `Text ["INSTALLSHORTCUTSTARTMENU"];
-                        `End_element;
+                    component "ApplicationShortcutStartMenu" ~condition:"INSTALLSHORTCUTSTARTMENU" [
 
                         `Start_element ((name "Shortcut"), [
                                           name "Id", "startmenu_" ^ normalize_id info.wix_exec_file;
@@ -366,12 +358,24 @@ let main_wxs info : wxs =
                         `End_element;
                       ]
                     @ [
-
                       `End_element;
+                      ] @
 
+                       (List.map (fun (_dirname, cg, dir_ref, srcdir) -> [
+                            `Start_element ((name "ComponentGroup"), [
+                                name "Id", cg;
+                              ]);
+                            `Start_element ((name "Files"), [
+                                name "Directory", dir_ref;
+                                name "Include", srcdir ^ "\\**";
+                              ]);
+                            `End_element;
+                            `End_element])
+                          info.wix_embedded_dirs
+                        |> List.flatten)
+
+                    @ [
                       `Start_element ((name "Directory"), [ name "Id", "WINSYSDIR" ]);
-                      `End_element;
-
                       `End_element;
 
                       `Start_element ((name "SetDirectory"), [
@@ -401,7 +405,7 @@ let main_wxs info : wxs =
                           `End_element;
                       ]) @
 
-                        (List.map (fun (_, cg, _) -> [
+                        (List.map (fun (_, cg, _, _srcdir) -> [
                                `Start_element ((name "ComponentGroupRef"), [
                                                  name "Id", cg;
                                  ]);
@@ -479,7 +483,7 @@ let main_wxs info : wxs =
                               ]);
                             `End_element;
 
-                            `Start_element ((name "UIRef"), [name "Id", "Custom_InstallDir"]);
+                            `Start_element ((name "ui:WixUI"), [name "Id", "Custom_InstallDir"]);
                             `End_element;
 
                             `End_element;

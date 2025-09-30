@@ -34,9 +34,8 @@ jobs:
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
-      - run: opam install . --deps-only
-      - run: opam exec -- dune build @install
       - run: opam install . --deps-only -t
+      - run: opam exec -- dune build @install
       - run: opam exec -- dune runtest
       - run: opam config report
       - run: opam install .
