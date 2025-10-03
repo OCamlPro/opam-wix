@@ -71,9 +71,12 @@ let output_dir =
       ~doc:"The output directory where bundle will be stored"
 
 let wix_path =
-  let prefix = if Sys.cygwin then "/cygdrive" else "" in
+  (* FIXME: that won't work when using a MinGW ocaml compiler under a Cygwin env... *)
+  (* NOTE1: we could retrieve this using the WIX6 environment variable *)
+  (* NOTE2: or we could rely in wix.exe to be in the PATH (the installer sets it) *)
+  let prefix = if Sys.cygwin || true then "/cygdrive" else "" in
   value
-  & opt string (prefix ^ "/c/Program Files (x86)/WiX Toolset v3.11/bin")
+  & opt string (prefix ^ "/c/Program Files/WiX Toolset v6.0/bin")
   & info [ "wix-path" ] ~docv:"DIR"
       ~doc:
         "The path where WIX tools are stored. The path should be full and \

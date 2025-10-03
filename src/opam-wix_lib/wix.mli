@@ -64,7 +64,7 @@ type info = {
   wix_banner_bmp_file : string;
 
   (* Embedded directories information (reference another wxs file) *)
-  wix_embedded_dirs : (string * component_group * directory_ref) list;
+  wix_embedded_dirs : (string (* name *) * component_group * directory_ref * string (* source *)) list;
 
   (* Embedded files *)
   wix_embedded_files : string list;

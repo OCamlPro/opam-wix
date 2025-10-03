@@ -17,40 +17,13 @@ type uuid_mode =
   | Rand (** Random seed *)
   | Exec of string * string * string option (** Seed based on metadata information about package, its version and name of binary. *)
 
-(** Way to define in/output files for {i candle} *)
-type candle_files =
-  | One of string * string (** Input + output *)
-  | Many of string list (** Inputs *)
-
-(** Configuration options for {i candle} command as a part of WiX tools. Consists of the path to
-    WiX toolset binaries, input and output files for {i candle} as well as a list of
-    variable declarations. *)
-type candle = {
-  candle_wix_path : string;
-  candle_files : candle_files;
-  candle_defines : string list;
-}
-
-(** Configuration options for {i light} command as a part of WiX tools. Consists of the path to
+(** Configuration options for {i wix} command as a part of WiX tools. Consists of the path to
     WiX toolset binaries, input files, extensions to be used and output file path. *)
-type light = {
-  light_wix_path : string;
-  light_files : string list;
-  light_exts : string list;
-  light_out : string
-}
-
-(** Configuration options for {i heat} command as a part of WiX tools, that generates wxs file
-    for given directory structure. Consists of the path to WiX toolset binaries, directory path,
-    output filname, component group that could be used in main file to reference a generated feature,
-    reference to a directory tag in the main wxs file and variable used to rely file with the main wxs. *)
-type heat = {
-  heat_wix_path : string;
-  heat_dir : string;
-  heat_out : string;
-  heat_component_group : string;
-  heat_directory_ref : string;
-  heat_var : string
+type wix = {
+  wix_wix_path : string;
+  wix_files : string list;
+  wix_exts : string list;
+  wix_out : string
 }
 
 (** makeself script arguments *)
@@ -76,9 +49,7 @@ type _ command =
   | Ldd : string command (** {b ldd} command to get binaries .so paths *)
   | Cygpath : (cygpath_out * string) command (** {b cygpath} command to translate path between cygwin and windows and vice-versa *)
   | Uuidgen : uuid_mode command  (** {b uuidgen} command to create a new UUID value, based on seed. *)
-  | Candle : candle command  (** {b candle.exe} command as a part of WiX toolset to compile Wix source files. *)
-  | Light : light command  (** {b light.exe} command as a part of WiX toolset to link all compiled Wix source files in MSI. *)
-  | Heat : heat command  (** {b heat.exe} command as a part of WiX toolset to generate WiX source for specified directory. *)
+  | Wix : wix command
   | Makeself : makeself command (** {b makeself.sh} command to generate linux installer. *)
   | Chmod : (int * OpamFilename.t) command
 
